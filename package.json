@@ -1,0 +1,15 @@
+{
+  "name": "pips_channel_personal-website_api",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "Yacine Touati <yacine.touati.pro@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.9.4"
+  }
+}

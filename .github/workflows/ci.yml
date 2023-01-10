@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    name: Typescript build + push to PR branch
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: build with Node.js ${{ matrix.node-version }} then push to PR branch
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run build
+      - run: echo "tsc build for ${GITHUB_REF#refs/heads/}.${GITHUB_SHA}" > latest_build.txt
+      - run: git config --global user.email "yacine.touati.pro@gmail.com"
+      - run: git config --global user.name "Yacine Touati"
+      - run: git add .
+      - run: git commit -m "tsc build for ${GITHUB_REF#refs/heads/}.${GITHUB_SHA}"
+      - run: git push
