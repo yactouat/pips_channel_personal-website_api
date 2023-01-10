@@ -5,14 +5,29 @@ on:
     branches: ["main"]
 
 jobs:
-  ci:
+  test:
+    runs-on: ubuntu-latest
+    name: Typescript test
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: test with jest
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run test
+
+  build:
+    needs: test
     runs-on: ubuntu-latest
     name: Typescript build + push to PR branch
     steps:
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-      - name: build with Node.js ${{ matrix.node-version }} then push to PR branch
+      - name: build with tsc then push to PR branch
         uses: actions/setup-node@v3
         with:
           node-version: 18
