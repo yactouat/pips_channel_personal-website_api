@@ -4,6 +4,7 @@ on:
   push:
     branches: ["cicd/deploy-to-gcp", "main"]
 
+jobs:
   build:
     runs-on: ubuntu-latest
     name: Typescript build + push to PR branch
