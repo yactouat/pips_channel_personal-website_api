@@ -1,5 +1,19 @@
 # pips_channel_personal-website_api
 
+<!-- TOC -->
+
+- [pips_channel_personal-website_api](#pips_channel_personal-website_api)
+  - [what is this ?](#what-is-this-)
+  - [pre requisites](#pre-requisites)
+  - [how to run](#how-to-run)
+  - [CI/CD WIP](#cicd-wip)
+    - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
+    - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+  - [Contribution guidelines](#contribution-guidelines)
+  - [Contributors](#contributors)
+
+<!-- /TOC -->
+
 ## what is this ?
 
 the server-side code that powers my personal website API, feel free to use this as a template for your own API
@@ -37,6 +51,7 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 - you will need a service account key JSON file, you can create one in the GCP IAM and Admin section of the console
 - next, you'll need to create a secret in the Github repo settings, with the name `GCP_CREDENTIALS` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
+- you can also specify env vars for region, port, etc., check out <https://docs.github.com/en/actions/learn-github-actions/contexts#vars-context> and the `./.github/workflows/cd.yml` file for more info
 
 ## Contribution guidelines
 
