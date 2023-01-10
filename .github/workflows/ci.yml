@@ -39,4 +39,3 @@ jobs:
       - run: git add .
       - run: git commit -m "tsc build for ${GITHUB_REF#refs/heads/}.${GITHUB_SHA}"
       - run: git push
-      - run: node ./dist/server.js

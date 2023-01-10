@@ -9,6 +9,13 @@ the server-side code that powers my personal website API, feel free to use this 
 - [Node.js](https://nodejs.org/en/)
 - [Typescript](https://www.typescriptlang.org/)
 
+## how to run
+
+- clone the repo
+- run `npm install` to install the dependencies
+- run `npm run build` to build the project
+- run `npm run start` to start the server on port 8080
+
 ## CI/CD (WIP)
 
 testing with jest, building with tsc, and deploying to the GCP, are all automated using Github Actions under the `.github/workflows` folder;
