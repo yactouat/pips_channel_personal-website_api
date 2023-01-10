@@ -7,12 +7,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Typescript build + push to PR branch
+    name: Typescript build + push to branch
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-      - name: build with tsc then push to PR branch
+      - name: build with tsc then push to branch
         uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -30,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy to GCP
     steps:
+      - uses: actions/checkout@v3
       - id: "auth-to-gcp"
         uses: "google-github-actions/auth@v1"
         with:
