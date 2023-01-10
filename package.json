@@ -1,6 +1,6 @@
 {
   "name": "pips_channel_personal-website_api",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "",
   "main": "./dist/server.js",
   "scripts": {
