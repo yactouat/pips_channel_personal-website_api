@@ -3,7 +3,7 @@ import express from "express";
 const API = express();
 
 API.get("/", (req, res) => {
-  res.status(200).json({ msg: "API is up" });
+  res.status(200).json({ msg: "latest API release is up" });
 });
 
 const server = API.listen(8080, () => {

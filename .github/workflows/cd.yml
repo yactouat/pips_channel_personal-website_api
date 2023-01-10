@@ -1,0 +1,28 @@
+name: CD
+
+on:
+  # this action will only run if you create a release
+  release:
+    types: [created]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Build app' and deploy to GCP
+    environment: live
+    steps:
+      - uses: actions/checkout@v3
+      - name: build with tsc then push to branch
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run build
+      - id: "auth-to-gcp"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+      - name: "set up Google Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+      - name: "deploy from source"
+        run: "gcloud run deploy ${{ secrets.GCP_SERVICE }} --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} --allow-unauthenticated"
