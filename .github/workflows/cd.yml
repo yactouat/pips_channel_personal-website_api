@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy to GCP
     steps:
-      - id: "authenticate to the GCP"
+      - id: "auth-to-gcp"
         uses: "google-github-actions/auth@v1"
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
