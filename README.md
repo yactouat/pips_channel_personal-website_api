@@ -24,12 +24,13 @@ the testing and building part happens whenever a pull request is created or upda
 
 the deploying to the GCP part happens whenever a new release is created on Github
 
-### deploying to the GCP
+### deploying to the GCP manually
 
 - you must have a project with the billing setup on the GCP
 - you must have the `gcloud` CLI installed and configured to your project (`gcloud init` if it's not the case)
-- `gcloud run deploy`, you may be prompted several times to confirm stuff:
+- `gcloud run deploy`, you may be prompted several times, to confirm stuff, and you can also specify a few options:
   - if you plan to point a domain name to your service, check out [domain mapping availability for Cloud Run](https://cloud.google.com/run/docs/mapping-custom-domains#run) to pick [the right region](https://cloud.google.com/compute/docs/regions-zones)
+  - the `--port=PORT` option is used to specify the port on which the server will listen, it's set to `8080` by default
 
 ## Contribution guidelines
 

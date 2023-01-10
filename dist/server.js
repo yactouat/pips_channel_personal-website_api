@@ -8,6 +8,6 @@ const API = (0, express_1.default)();
 API.get("/", (req, res) => {
     res.status(200).json({ msg: "API is up" });
 });
-const server = API.listen(8080, () => {
+const server = API.listen(8081, () => {
     console.log("API server running");
 });
