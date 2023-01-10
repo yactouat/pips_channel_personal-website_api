@@ -1,0 +1,39 @@
+name: CD
+
+on:
+  push:
+    branches: ["cicd/deploy-to-gcp", "main"]
+
+  build:
+    runs-on: ubuntu-latest
+    name: Typescript build + push to PR branch
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: build with tsc then push to PR branch
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run build
+      - run: echo "tsc build for ${GITHUB_REF#refs/heads/}.${GITHUB_SHA}" > latest_build.txt
+      - run: git config --global user.email "yacine.touati.pro@gmail.com"
+      - run: git config --global user.name "Yacine Touati"
+      - run: git add .
+      - run: git commit -m "tsc build for ${GITHUB_REF#refs/heads/}.${GITHUB_SHA}"
+      - run: git push
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Deploy to GCP
+    steps:
+      - id: "authenticate to the GCP"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+      - name: "set up Google Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+      - name: "use the gcloud CLI"
+        run: "gcloud info"
