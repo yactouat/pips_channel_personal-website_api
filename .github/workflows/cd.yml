@@ -36,6 +36,11 @@ jobs:
       - name: "set up Google Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v1"
       - name: "echo env vars"
-        run: "echo ${env.GCP_REGION} ${env.GCP_PORT}"
+        env:
+          GCP_REGION_ENV: ${{ env.GCP_REGION }}
+          GCP_PORT_ENV: ${{ env.GCP_PORT }}
+          GCP_REGION_VAR: ${{ vars.GCP_REGION }}
+          GCP_PORT_VAR: ${{ vars.GCP_PORT }}
+        run: "echo $GCP_REGION_ENV $GCP_PORT_ENV $GCP_REGION_VAR $GCP_PORT_VAR"
       # - name: "deploy from source"
       #   run: "gcloud run deploy --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} --allow-unauthenticated"
