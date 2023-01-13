@@ -81,7 +81,9 @@ the deploying to the GCP part happens whenever a new release is created on Githu
   ```
 
 - blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the stored blog posts contents
-  - the secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
+  - the Secret Manager secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
+  - you should also set =>
+    - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.txt`
 
 ## Contribution guidelines
 
