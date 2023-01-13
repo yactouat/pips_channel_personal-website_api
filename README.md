@@ -9,8 +9,8 @@
   - [CI/CD](#cicd)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
-  - [API resources WIP](#api-resources-wip)
-    - [blog posts](#blog-posts)
+  - [API resources](#api-resources)
+    - [blog posts WIP](#blog-posts-wip)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -57,9 +57,9 @@ the deploying to the GCP part happens whenever a new release is created on Githu
   - `GCP_CLOUDRUN_SERVICE_NAME` and the value being the name of your Cloud Run service
 - you will also need specify sensitive and non-sensitive env vars for service name, region, port, etc., check out <https://docs.github.com/en/actions/learn-github-actions/contexts#vars-context> and the `./.github/workflows/cd.yml` file for more info
 
-## API resources (WIP)
+## API resources
 
-### blog posts
+### blog posts (WIP)
 
 - a get request to `/blog-posts` will return a list of blog posts as in =>
 
@@ -80,7 +80,8 @@ the deploying to the GCP part happens whenever a new release is created on Githu
   ]
   ```
 
-- blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) ...
+- blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the stored blog posts contents
+  - the secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
 
 ## Contribution guidelines
 

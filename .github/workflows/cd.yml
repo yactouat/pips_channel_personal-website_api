@@ -30,4 +30,4 @@ jobs:
         run: |
           gcloud run deploy ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }} \
             --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} \
-            --allow-unauthenticated"
+            --allow-unauthenticated
