@@ -23,13 +23,11 @@ jobs:
       - id: "auth-to-gcp"
         uses: "google-github-actions/auth@v1"
         with:
-          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
-          test_secret: "${{ secrets.TEST_SECRET }}"
+          credentials_json: "${{ secrets.GCP_CLOUDRUN_CREDENTIALS }}"
       - name: "set up Google Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v1"
       - name: "deploy from source"
         run: |
-          gcloud run deploy ${{ secrets.GCP_SERVICE }} \
+          gcloud run deploy ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }} \
             --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} \
-            --set-env-vars=TEST_SECRET=${{ secrets.TEST_SECRET }} \
             --allow-unauthenticated"

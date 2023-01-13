@@ -6,9 +6,11 @@
   - [what is this ?](#what-is-this-)
   - [pre requisites](#pre-requisites)
   - [how to run](#how-to-run)
-  - [CI/CD WIP](#cicd-wip)
+  - [CI/CD](#cicd)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+  - [API resources WIP](#api-resources-wip)
+    - [blog posts](#blog-posts)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -30,7 +32,7 @@ the server-side code that powers my personal website API, feel free to use this 
 - run `npm run build` to build the project
 - run `npm run start` to start the server on port 8080
 
-## CI/CD (WIP)
+## CI/CD
 
 testing with jest, building with tsc, and deploying to the GCP, are all automated using Github Actions under the `.github/workflows` folder;
 
@@ -50,8 +52,35 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 ### deploying to the GCP automatically
 
 - you will need a service account key JSON file, you can create one in the GCP IAM and Admin section of the console
-- next, you'll need to create a secret in the Github repo settings, with the name `GCP_CREDENTIALS` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
+- next, you'll need to create 2 secrets in the Github repo settings:
+  - `GCP_CLOUDRUN_CREDENTIALS` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
+  - `GCP_CLOUDRUN_SERVICE_NAME` and the value being the name of your Cloud Run service
 - you will also need specify sensitive and non-sensitive env vars for service name, region, port, etc., check out <https://docs.github.com/en/actions/learn-github-actions/contexts#vars-context> and the `./.github/workflows/cd.yml` file for more info
+
+## API resources (WIP)
+
+### blog posts
+
+- a get request to `/blog-posts` will return a list of blog posts as in =>
+
+  ```json
+  [
+    {
+      "date": "2021-01-02",
+      "slug": "newest-blog-post",
+      "title": "newest blog post",
+      "contents": "# newest blog post contents"
+    },
+    {
+      "date": "2021-01-01",
+      "slug": "blog-post",
+      "title": "blog post",
+      "contents": "# blog post contents"
+    }
+  ]
+  ```
+
+- blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) ...
 
 ## Contribution guidelines
 
