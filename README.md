@@ -80,9 +80,14 @@ the deploying to the GCP part happens whenever a new release is created on Githu
   ]
   ```
 
+- please note each of this JSON item's props, other than `date` and `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
+  - the file name should be in the format `YYYY-MM-DD-slug.md`
+  - the `slug` prop is used to generate the URL of the blog post
+  - the `title` prop is used to generate the title of the blog post
 - blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the stored blog posts contents
   - the Secret Manager secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
   - you should also set =>
+    - a `GCP_STORAGE_BUCKET_NAME` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
     - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.txt`
 
 ## Contribution guidelines
