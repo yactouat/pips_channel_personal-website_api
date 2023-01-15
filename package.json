@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "NODE_ENV=development ts-node ./src/api.ts",
-    "start": "NODE_ENV=production node ./dist/api.js",
+    "start": "node ./dist/api.js",
     "test": "jest"
   },
   "keywords": [],
