@@ -1,4 +1,3 @@
-import * as dotenv from "dotenv";
 import express from "express";
 import {
   fetchBlogPostMetadataFromFileSystem,
@@ -7,7 +6,7 @@ import {
 } from "./resources/blog-posts/blog-posts";
 
 if (process.env.NODE_ENV === "development") {
-  dotenv.config();
+  require("dotenv").config();
 }
 
 const API = express();
