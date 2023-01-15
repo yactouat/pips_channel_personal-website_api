@@ -35,6 +35,7 @@ export const fetchBlogPostsMetadataFromGCPBucket = async () => {
       ? "KEY EXISTS"
       : "KEY DOES NOT EXIST"
   );
+  console.log(process.env.NODE_ENV === "production" ? "PROD" : "DEV");
   const storage =
     process.env.NODE_ENV === "production"
       ? new Storage({
