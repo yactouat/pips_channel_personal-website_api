@@ -5,8 +5,8 @@
   "main": "./dist/api.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node ./src/api.ts",
-    "start": "node ./dist/api.js",
+    "dev": "NODE_ENV=development ts-node ./src/api.ts",
+    "start": "NODE_ENV=production node ./dist/api.js",
     "test": "jest"
   },
   "keywords": [],
