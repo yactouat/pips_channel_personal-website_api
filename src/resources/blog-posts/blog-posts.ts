@@ -17,7 +17,7 @@ export const fetchBlogPostsMetadataFromGCPBucket = async () => {
   const storage =
     process.env.NODE_ENV === "production"
       ? new Storage({
-          keyFilename: process.env.GCP_STORAGE_BUCKET_NAME,
+          keyFilename: process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH,
         })
       : new Storage();
   try {
