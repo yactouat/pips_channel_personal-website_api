@@ -49,3 +49,17 @@ export const fetchBlogPostsMetadataFromFileSystem = (
     }
   });
 };
+
+export const fetchBlogPostMetadataFromFileSystem = (
+  slug: string,
+  postsDir: string
+): BlogPostMetaData => {
+  const postFileFullPath = path.join(postsDir, `${slug}.md`);
+  const fileContents = fs.readFileSync(postFileFullPath, "utf8");
+  const postMetadata = matter(fileContents);
+  return {
+    date: postMetadata.data.date,
+    slug: slug,
+    title: postMetadata.data.title,
+  };
+};

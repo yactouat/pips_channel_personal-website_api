@@ -1,5 +1,8 @@
 import express from "express";
-import { fetchBlogPostsMetadataFromFileSystem } from "./resources/blog-posts/blog-posts";
+import {
+  fetchBlogPostMetadataFromFileSystem,
+  fetchBlogPostsMetadataFromFileSystem,
+} from "./resources/blog-posts/blog-posts";
 
 const API = express();
 const MOCK_POSTS_DIR = "MOCK_posts";
@@ -8,7 +11,7 @@ const sendResponse = (
   res: express.Response,
   status: number,
   msg: string,
-  data: {}[] = []
+  data: {}[] | {} = []
 ) => {
   res.status(status).json({
     msg,
@@ -29,6 +32,19 @@ API.get("/blog-posts", (req, res) => {
     `${blogPostsMetadata.length} blog posts fetched`,
     blogPostsMetadata
   );
+});
+
+API.get("/blog-posts/:slug", (req, res) => {
+  const slug = req.params.slug;
+  try {
+    const blogPostdata = fetchBlogPostMetadataFromFileSystem(
+      slug,
+      MOCK_POSTS_DIR
+    );
+    sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
+  } catch (error) {
+    sendResponse(res, 404, `${slug} blog post data not found`);
+  }
 });
 
 const server = API.listen(8080, () => {
