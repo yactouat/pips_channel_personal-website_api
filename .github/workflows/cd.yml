@@ -4,8 +4,6 @@ on:
   # this action will only run if you create a release
   release:
     types: [created]
-  push:
-    branches: ["gcp/cloud-storage-access"]
 
 jobs:
   build-and-deploy:
