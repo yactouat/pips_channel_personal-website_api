@@ -13,6 +13,21 @@ interface PostData extends PostMetaData {
   contents: string;
 }
 
+export const fetchBlogPostDataFromFileSystem = async (
+  slug: string,
+  postsDir: string
+): Promise<PostData> => {
+  const postFileFullPath = path.join(postsDir, `${slug}.md`);
+  const fileContents = fs.readFileSync(postFileFullPath, "utf8");
+  const rawPost = matter(fileContents);
+  return {
+    contents: rawPost.content,
+    date: rawPost.data.date,
+    slug: slug,
+    title: rawPost.data.title,
+  };
+};
+
 export const fetchBlogPostsMetadataFromGCPBucket = async () => {
   const storage =
     process.env.NODE_ENV === "production"
@@ -66,19 +81,4 @@ export const fetchBlogPostsMetadataFromFileSystem = (
   return (postsMetaData as PostMetaData[]).sort((a, b) =>
     a.date < b.date ? 1 : -1
   );
-};
-
-export const fetchBlogPostMetadataFromFileSystem = async (
-  slug: string,
-  postsDir: string
-): Promise<PostData> => {
-  const postFileFullPath = path.join(postsDir, `${slug}.md`);
-  const fileContents = fs.readFileSync(postFileFullPath, "utf8");
-  const rawPost = matter(fileContents);
-  return {
-    contents: rawPost.content,
-    date: rawPost.data.date,
-    slug: slug,
-    title: rawPost.data.title,
-  };
 };

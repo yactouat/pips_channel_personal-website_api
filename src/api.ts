@@ -1,10 +1,11 @@
 import express from "express";
 import {
-  fetchBlogPostMetadataFromFileSystem,
+  fetchBlogPostDataFromFileSystem,
   fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts/blog-posts";
 
+// ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
@@ -54,7 +55,7 @@ API.get("/alpha/blog-posts", async (req, res) => {
 API.get("/blog-posts/:slug", async (req, res) => {
   const slug = req.params.slug;
   try {
-    const blogPostdata = await fetchBlogPostMetadataFromFileSystem(
+    const blogPostdata = await fetchBlogPostDataFromFileSystem(
       slug,
       MOCK_POSTS_DIR
     );
