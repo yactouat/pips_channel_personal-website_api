@@ -1,10 +1,17 @@
+import * as dotenv from "dotenv";
 import express from "express";
 import {
   fetchBlogPostMetadataFromFileSystem,
   fetchBlogPostsMetadataFromFileSystem,
+  fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts/blog-posts";
 
+if (process.env.NODE_ENV === "development") {
+  dotenv.config();
+}
+
 const API = express();
+// using mocks for now while I'm still developing the API
 const MOCK_POSTS_DIR = "MOCK_posts";
 
 const sendResponse = (
@@ -31,6 +38,17 @@ API.get("/blog-posts", (req, res) => {
     200,
     `${blogPostsMetadata.length} blog posts fetched`,
     blogPostsMetadata
+  );
+});
+
+API.get("/alpha/blog-posts", async (req, res) => {
+  const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();
+  sendResponse(
+    res,
+    200,
+    `... blog posts fetched`,
+    // `${blogPostsMetadata.length} blog posts fetched`,
+    null
   );
 });
 

@@ -1,6 +1,7 @@
 import fs from "fs";
 import matter from "gray-matter";
 import path from "path";
+import { Storage } from "@google-cloud/storage";
 
 interface PostMetaData {
   date: string;
@@ -11,6 +12,23 @@ interface PostMetaData {
 interface PostData extends PostMetaData {
   contents: string;
 }
+
+export const fetchBlogPostsMetadataFromGCPBucket = async () => {
+  const storage =
+    process.env.NODE_ENV === "production"
+      ? new Storage({
+          keyFilename: process.env.GCP_STORAGE_BUCKET_NAME,
+        })
+      : new Storage();
+  try {
+    const [postsFileNames] = await storage
+      .bucket(process.env.GCP_STORAGE_BUCKET_NAME as string)
+      .getFiles();
+    console.log(postsFileNames);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 export const fetchBlogPostsMetadataFromFileSystem = (
   postsDir: string
