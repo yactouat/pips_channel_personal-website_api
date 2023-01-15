@@ -61,21 +61,19 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 ### blog posts (WIP)
 
-- a get request to `/blog-posts` will return a list of blog posts as in =>
+- a get request to `/blog-posts` will return a list of published blog posts metadata as in =>
 
   ```json
   [
     {
       "date": "2021-01-02",
       "slug": "newest-blog-post",
-      "title": "newest blog post",
-      "contents": "# newest blog post contents"
+      "title": "newest blog post"
     },
     {
       "date": "2021-01-01",
       "slug": "blog-post",
-      "title": "blog post",
-      "contents": "# blog post contents"
+      "title": "blog post"
     }
   ]
   ```
