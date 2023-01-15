@@ -11,7 +11,7 @@ const sendResponse = (
   res: express.Response,
   status: number,
   msg: string,
-  data: {}[] | {} = []
+  data: {}[] | {} | null = null
 ) => {
   res.status(status).json({
     msg,
@@ -34,15 +34,16 @@ API.get("/blog-posts", (req, res) => {
   );
 });
 
-API.get("/blog-posts/:slug", (req, res) => {
+API.get("/blog-posts/:slug", async (req, res) => {
   const slug = req.params.slug;
   try {
-    const blogPostdata = fetchBlogPostMetadataFromFileSystem(
+    const blogPostdata = await fetchBlogPostMetadataFromFileSystem(
       slug,
       MOCK_POSTS_DIR
     );
     sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
   } catch (error) {
+    console.error(error);
     sendResponse(res, 404, `${slug} blog post data not found`);
   }
 });

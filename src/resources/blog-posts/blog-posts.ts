@@ -1,16 +1,21 @@
 import fs from "fs";
-import path from "path";
+// import html from "remark-html";
 import matter from "gray-matter";
+import path from "path";
 
-interface BlogPostMetaData {
+interface PostMetaData {
   date: string;
   slug: string;
   title: string;
 }
 
+interface PostData extends PostMetaData {
+  contents: string;
+}
+
 export const fetchBlogPostsMetadataFromFileSystem = (
   postsDir: string
-): BlogPostMetaData[] => {
+): PostMetaData[] => {
   // Get file names under /posts
   const postsFileNames = fs.readdirSync(path.join(process.cwd(), postsDir));
   const postsMetaData: {}[] = postsFileNames
@@ -41,7 +46,7 @@ export const fetchBlogPostsMetadataFromFileSystem = (
       return postMetaData.date && postMetaData.slug && postMetaData.title;
     });
   // Sort posts by date DESC
-  return (postsMetaData as BlogPostMetaData[]).sort((a, b) => {
+  return (postsMetaData as PostMetaData[]).sort((a, b) => {
     if (a.date < b.date) {
       return 1;
     } else {
@@ -50,16 +55,18 @@ export const fetchBlogPostsMetadataFromFileSystem = (
   });
 };
 
-export const fetchBlogPostMetadataFromFileSystem = (
+export const fetchBlogPostMetadataFromFileSystem = async (
   slug: string,
-  postsDir: string
-): BlogPostMetaData => {
+  postsDir: string,
+  asHtml: boolean = false
+): Promise<PostData> => {
   const postFileFullPath = path.join(postsDir, `${slug}.md`);
   const fileContents = fs.readFileSync(postFileFullPath, "utf8");
-  const postMetadata = matter(fileContents);
+  const rawPost = matter(fileContents);
   return {
-    date: postMetadata.data.date,
+    contents: rawPost.content,
+    date: rawPost.data.date,
     slug: slug,
-    title: postMetadata.data.title,
+    title: rawPost.data.title,
   };
 };
