@@ -8,7 +8,7 @@ interface BlogPostMetaData {
   title: string;
 }
 
-export const fetchBlogPostsFromFileSystem = (
+export const fetchBlogPostsMetadataFromFileSystem = (
   postsDir: string
 ): BlogPostMetaData[] => {
   // Get file names under /posts

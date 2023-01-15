@@ -1,6 +1,8 @@
 import express from "express";
+import { fetchBlogPostsMetadataFromFileSystem } from "./resources/blog-posts/blog-posts";
 
 const API = express();
+const MOCK_POSTS_DIR = "MOCK_posts";
 
 const sendResponse = (
   res: express.Response,
@@ -19,8 +21,14 @@ API.get("/", (req, res) => {
 });
 
 API.get("/blog-posts", (req, res) => {
-  // TODO
-  sendResponse(res, 200, "... blog posts fetched", []);
+  const blogPostsMetadata =
+    fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
+  sendResponse(
+    res,
+    200,
+    `${blogPostsMetadata.length} blog posts fetched`,
+    blogPostsMetadata
+  );
 });
 
 const server = API.listen(8080, () => {
