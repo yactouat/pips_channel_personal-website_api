@@ -1,5 +1,4 @@
 import fs from "fs";
-// import html from "remark-html";
 import matter from "gray-matter";
 import path from "path";
 
@@ -46,19 +45,14 @@ export const fetchBlogPostsMetadataFromFileSystem = (
       return postMetaData.date && postMetaData.slug && postMetaData.title;
     });
   // Sort posts by date DESC
-  return (postsMetaData as PostMetaData[]).sort((a, b) => {
-    if (a.date < b.date) {
-      return 1;
-    } else {
-      return -1;
-    }
-  });
+  return (postsMetaData as PostMetaData[]).sort((a, b) =>
+    a.date < b.date ? 1 : -1
+  );
 };
 
 export const fetchBlogPostMetadataFromFileSystem = async (
   slug: string,
-  postsDir: string,
-  asHtml: boolean = false
+  postsDir: string
 ): Promise<PostData> => {
   const postFileFullPath = path.join(postsDir, `${slug}.md`);
   const fileContents = fs.readFileSync(postFileFullPath, "utf8");
