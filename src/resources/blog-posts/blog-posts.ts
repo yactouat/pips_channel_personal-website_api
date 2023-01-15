@@ -29,10 +29,16 @@ export const fetchBlogPostDataFromFileSystem = async (
 };
 
 export const fetchBlogPostsMetadataFromGCPBucket = async () => {
+  console.log(process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH);
+  console.log(
+    fs.existsSync(process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH as string)
+      ? "KEY EXISTS"
+      : "KEY DOES NOT EXIST"
+  );
   const storage =
     process.env.NODE_ENV === "production"
       ? new Storage({
-          keyFilename: process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH,
+          keyFilename: `${process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH}`,
         })
       : new Storage();
   try {
