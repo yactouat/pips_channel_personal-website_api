@@ -5,10 +5,12 @@
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
   - [what is this ?](#what-is-this-)
   - [pre requisites](#pre-requisites)
-  - [how to run](#how-to-run)
-  - [CI/CD WIP](#cicd-wip)
+  - [how to run and setup](#how-to-run-and-setup)
+  - [CI/CD](#cicd)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+  - [API resources](#api-resources)
+    - [blog posts](#blog-posts)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -22,15 +24,19 @@ the server-side code that powers my personal website API, feel free to use this 
 
 - [Node.js](https://nodejs.org/en/)
 - [Typescript](https://www.typescriptlang.org/)
+- a Google Cloud Platform (GCP) project
+- you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud init` if it's not the case)
 
-## how to run
+## how to run and setup
 
 - clone the repo
 - run `npm install` to install the dependencies
 - run `npm run build` to build the project
 - run `npm run start` to start the server on port 8080
+- when developping locally, make sure you have your Google Application Default credentials setup; if not just run `gcloud auth application-default login` command
+- I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can use the `.env.example` file as a template for your own `.env` file
 
-## CI/CD (WIP)
+## CI/CD
 
 testing with jest, building with tsc, and deploying to the GCP, are all automated using Github Actions under the `.github/workflows` folder;
 
@@ -40,7 +46,6 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 ### deploying to the GCP manually
 
-- you must have the `gcloud` CLI installed and configured to your project (`gcloud init` if it's not the case)
 - running `gcloud run deploy`, you may be prompted several times to confirm stuff, and you can also specify a few options:
   - if you plan to point a domain name to your service, check out [domain mapping availability for Cloud Run](https://cloud.google.com/run/docs/mapping-custom-domains#run) to pick [the right region](https://cloud.google.com/compute/docs/regions-zones)
   - the `--port=PORT` option is used to specify the port on which the server will listen (for instance `8080`)
@@ -50,8 +55,62 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 ### deploying to the GCP automatically
 
 - you will need a service account key JSON file, you can create one in the GCP IAM and Admin section of the console
-- next, you'll need to create a secret in the Github repo settings, with the name `GCP_CREDENTIALS` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
+- next, you'll need to create 2 secrets in the Github repo settings:
+  - `GCP_CLOUDRUN_CREDENTIALS` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
+  - `GCP_CLOUDRUN_SERVICE_NAME` and the value being the name of your Cloud Run service
 - you will also need specify sensitive and non-sensitive env vars for service name, region, port, etc., check out <https://docs.github.com/en/actions/learn-github-actions/contexts#vars-context> and the `./.github/workflows/cd.yml` file for more info
+- blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to =>
+  - [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the stored blog posts contents
+  - the Secret Manager secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
+  - you of course need to have a GCP bucket created and populated with your blog posts contents
+  - you should also set =>
+    - a `GCP_STORAGE_BUCKET_NAME` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
+    - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
+
+## API resources
+
+### blog posts
+
+- a get request to `/blog-posts` will return a list of published blog posts metadata as in =>
+
+  ```json
+  [
+    {
+      "date": "2021-01-02",
+      "slug": "newest-blog-post",
+      "title": "newest blog post"
+    },
+    {
+      "date": "2021-01-01",
+      "slug": "blog-post",
+      "title": "blog post"
+    }
+  ]
+  ```
+
+- a get request to `/blog-posts/:slug` will return a list of published blog posts metadata as in =>
+
+  ```json
+  [
+    {
+      "contents": "# this is the markdown contents of this blog post",
+      "date": "2021-01-02",
+      "slug": "newest-blog-post",
+      "title": "newest blog post"
+    },
+    {
+      "contents": "# this is the markdown contents of this blog post",
+      "date": "2021-01-01",
+      "slug": "blog-post",
+      "title": "blog post"
+    }
+  ]
+  ```
+
+- please note each of this JSON item's props, other than `date` and `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
+  - the file name should be in the format `the-slug.md`
+  - the `slug` prop is used to generate the URL of the blog post
+  - the `title` prop is used to generate the title of the blog post
 
 ## Contribution guidelines
 
