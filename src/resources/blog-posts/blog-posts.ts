@@ -13,6 +13,24 @@ interface PostData extends PostMetaData {
   contents: string;
 }
 
+const extractPostMetadataFromRawPost = (postContents: string): PostMetaData => {
+  // Use gray-matter to parse the post metadata section
+  const postMetadata = matter(postContents);
+  if (
+    !postMetadata.data.date ||
+    !postMetadata.data.slug ||
+    !postMetadata.data.title
+  ) {
+    throw new Error("post metadata is missing");
+  }
+  // Combine the metadata with the slug
+  return {
+    date: postMetadata.data.date,
+    slug: postMetadata.data.slug,
+    title: postMetadata.data.title,
+  };
+};
+
 export const fetchBlogPostDataFromFileSystem = async (
   slug: string,
   postsDir: string
@@ -28,14 +46,9 @@ export const fetchBlogPostDataFromFileSystem = async (
   };
 };
 
-export const fetchBlogPostsMetadataFromGCPBucket = async () => {
-  console.log(process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH);
-  console.log(
-    fs.existsSync(process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH as string)
-      ? "KEY EXISTS"
-      : "KEY DOES NOT EXIST"
-  );
-  console.log(process.env.NODE_ENV === "production" ? "PROD" : "DEV");
+export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
+  PostMetaData[]
+> => {
   const storage =
     process.env.NODE_ENV === "production"
       ? new Storage({
@@ -43,12 +56,25 @@ export const fetchBlogPostsMetadataFromGCPBucket = async () => {
         })
       : new Storage();
   try {
-    const [postsFileNames] = await storage
-      .bucket(process.env.GCP_STORAGE_BUCKET_NAME as string)
-      .getFiles();
-    console.log(postsFileNames);
+    const bucketName = process.env.GCP_STORAGE_BUCKET_NAME as string;
+    const [postsFiles] = await storage.bucket(bucketName).getFiles();
+    const postsMetaData: PostMetaData[] = [];
+    for (let i = 0; i < postsFiles.length; i++) {
+      const fileName = postsFiles[i].name;
+      const contents = await storage
+        .bucket(bucketName)
+        .file(fileName)
+        .download();
+      try {
+        postsMetaData.push(extractPostMetadataFromRawPost(contents.toString()));
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    return sortPostsMetaDataByDateProp(postsMetaData);
   } catch (error) {
     console.error(error);
+    return [];
   }
 };
 
@@ -64,28 +90,28 @@ export const fetchBlogPostsMetadataFromFileSystem = (
       // Read markdown file as an utf-8 encoded string
       const fullPath = path.join(postsDir, fileName);
       const fileContents = fs.readFileSync(fullPath, "utf8");
-      // Use gray-matter to parse the post metadata section
-      const postMetadata = matter(fileContents);
-      if (
-        !postMetadata.data.date ||
-        !postMetadata.data.slug ||
-        !postMetadata.data.title
-      ) {
+      try {
+        return extractPostMetadataFromRawPost(fileContents);
+      } catch (error) {
         return {};
       }
-      // Combine the metadata with the slug
-      return {
-        date: postMetadata.data.date,
-        slug: postSlug,
-        title: postMetadata.data.title,
-      };
     })
     // filtering out the posts that don't have the required metadata
     .filter((postMetaData) => {
-      return postMetaData.date && postMetaData.slug && postMetaData.title;
+      return (
+        postMetaData.hasOwnProperty("date") &&
+        postMetaData.hasOwnProperty("slug") &&
+        postMetaData.hasOwnProperty("title")
+      );
     });
   // Sort posts by date DESC
-  return (postsMetaData as PostMetaData[]).sort((a, b) =>
-    a.date < b.date ? 1 : -1
-  );
+  return sortPostsMetaDataByDateProp(postsMetaData as PostMetaData[]);
+};
+
+const sortPostsMetaDataByDateProp = (
+  postsMetaData: PostMetaData[]
+): PostMetaData[] => {
+  return postsMetaData.sort((a, b) => {
+    return a.date < b.date ? 1 : -1;
+  });
 };

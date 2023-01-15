@@ -46,9 +46,8 @@ API.get("/alpha/blog-posts", async (req, res) => {
   sendResponse(
     res,
     200,
-    `... blog posts fetched`,
-    // `${blogPostsMetadata.length} blog posts fetched`,
-    null
+    `${blogPostsMetadata.length} blog posts fetched`,
+    blogPostsMetadata
   );
 });
 
