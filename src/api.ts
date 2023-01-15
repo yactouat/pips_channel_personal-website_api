@@ -1,6 +1,7 @@
 import express from "express";
 import {
   fetchBlogPostDataFromFileSystem,
+  fetchBlogPostDataFromGCPBucket,
   fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts/blog-posts";
@@ -30,17 +31,6 @@ API.get("/", (req, res) => {
   sendResponse(res, 200, "api.yactouat.com is up and running");
 });
 
-API.get("/blog-posts", (req, res) => {
-  const blogPostsMetadata =
-    fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
-  sendResponse(
-    res,
-    200,
-    `${blogPostsMetadata.length} blog posts fetched`,
-    blogPostsMetadata
-  );
-});
-
 API.get("/alpha/blog-posts", async (req, res) => {
   const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();
   sendResponse(
@@ -51,6 +41,27 @@ API.get("/alpha/blog-posts", async (req, res) => {
   );
 });
 
+API.get("/alpha/blog-posts/:slug", async (req, res) => {
+  const slug = req.params.slug;
+  try {
+    const blogPostdata = await fetchBlogPostDataFromGCPBucket(slug);
+    sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
+  } catch (error) {
+    console.error(error);
+    sendResponse(res, 404, `${slug} blog post data not found`);
+  }
+});
+
+API.get("/blog-posts", (req, res) => {
+  const blogPostsMetadata =
+    fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
+  sendResponse(
+    res,
+    200,
+    `${blogPostsMetadata.length} blog posts fetched`,
+    blogPostsMetadata
+  );
+});
 API.get("/blog-posts/:slug", async (req, res) => {
   const slug = req.params.slug;
   try {

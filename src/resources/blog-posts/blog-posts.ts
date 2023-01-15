@@ -46,27 +46,54 @@ export const fetchBlogPostDataFromFileSystem = async (
   };
 };
 
+export const fetchBlogPostDataFromGCPBucket = async (
+  slug: string
+): Promise<PostData> => {
+  let fileContents = "";
+  try {
+    const bucketName = process.env.GCP_STORAGE_BUCKET_NAME as string;
+    const storage = getGCPStorageClient();
+    const rawFileContents = await storage
+      .bucket(bucketName)
+      .file(`${slug}.md`)
+      .download();
+    fileContents = rawFileContents.toString();
+  } catch (error) {
+    console.error(error);
+    throw new Error("failed during GCP storage file retrieval process");
+  }
+  try {
+    const metaData = extractPostMetadataFromRawPost(fileContents);
+    return {
+      contents: fileContents,
+      date: metaData.date,
+      slug: slug,
+      title: metaData.title,
+    };
+  } catch (error) {
+    console.error(error);
+    throw new Error("post data is missing");
+  }
+};
+
 export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
   PostMetaData[]
 > => {
-  const storage =
-    process.env.NODE_ENV === "production"
-      ? new Storage({
-          keyFilename: `${process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH}`,
-        })
-      : new Storage();
+  const storage = getGCPStorageClient();
   try {
     const bucketName = process.env.GCP_STORAGE_BUCKET_NAME as string;
     const [postsFiles] = await storage.bucket(bucketName).getFiles();
     const postsMetaData: PostMetaData[] = [];
     for (let i = 0; i < postsFiles.length; i++) {
       const fileName = postsFiles[i].name;
-      const contents = await storage
+      const fileContents = await storage
         .bucket(bucketName)
         .file(fileName)
         .download();
       try {
-        postsMetaData.push(extractPostMetadataFromRawPost(contents.toString()));
+        postsMetaData.push(
+          extractPostMetadataFromRawPost(fileContents.toString())
+        );
       } catch (error) {
         console.error(error);
       }
@@ -106,6 +133,16 @@ export const fetchBlogPostsMetadataFromFileSystem = (
     });
   // Sort posts by date DESC
   return sortPostsMetaDataByDateProp(postsMetaData as PostMetaData[]);
+};
+
+export const getGCPStorageClient = (): Storage => {
+  const storage =
+    process.env.NODE_ENV === "production"
+      ? new Storage({
+          keyFilename: `${process.env.GCP_STORAGE_CREDENTIALS_SECRET_PATH}`,
+        })
+      : new Storage();
+  return storage;
 };
 
 const sortPostsMetaDataByDateProp = (
