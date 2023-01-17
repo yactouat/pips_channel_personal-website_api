@@ -17,9 +17,9 @@ const extractPostMetadataFromRawPost = (postContents: string): PostMetaData => {
   // Use gray-matter to parse the post metadata section
   const postMetadata = matter(postContents);
   if (
-    !postMetadata.data.date ||
-    !postMetadata.data.slug ||
-    !postMetadata.data.title
+    postMetadata.data.date == undefined ||
+    postMetadata.data.slug == undefined ||
+    postMetadata.data.title == undefined
   ) {
     throw new Error("post metadata is missing");
   }
