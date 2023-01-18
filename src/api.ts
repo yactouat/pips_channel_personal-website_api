@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === "development") {
 
 const API = express();
 // using mocks for now while I'm still developing the API
-const MOCK_POSTS_DIR = "MOCK_posts";
+// const MOCK_POSTS_DIR = "MOCK_posts";
 
 const sendResponse = (
   res: express.Response,

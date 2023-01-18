@@ -51,11 +51,11 @@ export const fetchBlogPostDataFromGCPBucket = async (
 ): Promise<PostData> => {
   let fileContents = "";
   try {
-    const bucketName = process.env.GCP_STORAGE_BUCKET_NAME as string;
+    const bucketName = process.env.GCP_BUCKET as string;
     const storage = getGCPStorageClient();
     const rawFileContents = await storage
       .bucket(bucketName)
-      .file(`${slug}.md`)
+      .file(`published/${slug}.md`)
       .download();
     fileContents = rawFileContents.toString();
   } catch (error) {
@@ -81,18 +81,22 @@ export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
 > => {
   const storage = getGCPStorageClient();
   try {
-    const bucketName = process.env.GCP_STORAGE_BUCKET_NAME as string;
-    const [postsFiles] = await storage.bucket(bucketName).getFiles();
+    const bucketName = process.env.GCP_BUCKET as string;
+    let [postsFiles] = await storage.bucket(bucketName).getFiles();
+    postsFiles = postsFiles.filter(
+      (post) => post.name.startsWith("published") && post.name.endsWith(".md")
+    );
     const postsMetaData: PostMetaData[] = [];
     for (let i = 0; i < postsFiles.length; i++) {
       const fileName = postsFiles[i].name;
-      const fileContents = await storage
+      const downloadedPost = await storage
         .bucket(bucketName)
         .file(fileName)
         .download();
+      console.log(fileName, "FILE NAME");
       try {
         postsMetaData.push(
-          extractPostMetadataFromRawPost(fileContents.toString())
+          extractPostMetadataFromRawPost(downloadedPost[0].toString())
         );
       } catch (error) {
         console.error(error);

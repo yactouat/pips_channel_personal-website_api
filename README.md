@@ -64,7 +64,7 @@ the deploying to the GCP part happens whenever a new release is created on Githu
   - the Secret Manager secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
   - you of course need to have a GCP bucket created and populated with your blog posts contents
   - you should also set =>
-    - a `GCP_STORAGE_BUCKET_NAME` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
+    - a `GCP_BUCKET` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
     - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
 
 ## API resources

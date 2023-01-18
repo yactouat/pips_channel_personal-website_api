@@ -29,5 +29,5 @@ jobs:
           gcloud run deploy ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }} \
             --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} \
             --update-secrets=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }}=GCP_STORAGE_CREDENTIALS:latest \
-            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_STORAGE_BUCKET_NAME=${{ secrets.GCP_STORAGE_BUCKET_NAME }} \
+            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_BUCKET=${{ secrets.GCP_BUCKET }} \
             --allow-unauthenticated
