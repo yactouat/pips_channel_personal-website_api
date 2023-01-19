@@ -5,12 +5,14 @@
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
   - [what is this ?](#what-is-this-)
   - [pre requisites](#pre-requisites)
+  - [nice to have](#nice-to-have)
   - [how to run and setup](#how-to-run-and-setup)
   - [CI/CD](#cicd)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
   - [API resources](#api-resources)
     - [blog posts](#blog-posts)
+    - [builds](#builds)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -26,6 +28,10 @@ the server-side code that powers my personal website API, feel free to use this 
 - [Typescript](https://www.typescriptlang.org/)
 - a Google Cloud Platform (GCP) project
 - you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud init` if it's not the case)
+
+## nice to have
+
+- a NextJS app' to consume this API that uses static generation (cf. `/builds` resource)
 
 ## how to run and setup
 
@@ -74,7 +80,8 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 - a get request to `/blog-posts` will return a list of published blog posts metadata as in =>
 
   ```json
-  [
+  "msg": "blog posts data fetched",
+  "data": [
     {
       "date": "2021-01-02",
       "slug": "newest-blog-post",
@@ -91,26 +98,32 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 - a get request to `/blog-posts/:slug` will return a list of published blog posts metadata as in =>
 
   ```json
-  [
-    {
-      "contents": "# this is the markdown contents of this blog post",
-      "date": "2021-01-02",
-      "slug": "newest-blog-post",
-      "title": "newest blog post"
-    },
-    {
-      "contents": "# this is the markdown contents of this blog post",
-      "date": "2021-01-01",
-      "slug": "blog-post",
-      "title": "blog post"
-    }
-  ]
+  "msg": "newest-blog-post blog post data fetched",
+  "data": {
+    "contents": "# this is the markdown contents of this blog post",
+    "date": "2021-01-02",
+    "slug": "newest-blog-post",
+    "title": "newest blog post"
+  }
   ```
 
-- please note each of this JSON item's props, other than `date` and `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
+- please note each of this JSON item's props, other than `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
+  - the date is written in the format `YYYY-MM-DD`
   - the file name should be in the format `the-slug.md`
   - the `slug` prop is used to generate the URL of the blog post
   - the `title` prop is used to generate the title of the blog post
+- a blog post that is not found will return a 404
+
+### builds
+
+- a post request to `/builds` will return a build success response or a 401 =>
+
+  ```json
+  "msg": "new build triggered",
+  "data": null
+  ```
+
+- this triggers a Vercel full build, useful when you want to re run static site generation to create/update blog pages
 
 ## Contribution guidelines
 

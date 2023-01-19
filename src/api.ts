@@ -1,19 +1,23 @@
 import express from "express";
+
 import {
   // fetchBlogPostDataFromFileSystem,
   fetchBlogPostDataFromGCPBucket,
   // fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
-} from "./resources/blog-posts/blog-posts";
+} from "./resources/blog-posts";
+import postVercelBuild from "./resources/builds";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
 
-const API = express();
 // using mocks for now while I'm still developing the API
 // const MOCK_POSTS_DIR = "MOCK_posts";
+
+const API = express();
+API.use(express.json());
 
 const sendResponse = (
   res: express.Response,
@@ -49,6 +53,15 @@ API.get("/blog-posts/:slug", async (req, res) => {
   } catch (error) {
     console.error(error);
     sendResponse(res, 404, `${slug} blog post data not found`);
+  }
+});
+
+API.post("/builds", async (req, res) => {
+  const buildWentThrough = await postVercelBuild(req.body.vercelToken ?? "");
+  if (buildWentThrough) {
+    sendResponse(res, 200, "new build triggered");
+  } else {
+    sendResponse(res, 401, "action not authorized");
   }
 });
 
