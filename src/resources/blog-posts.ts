@@ -86,9 +86,7 @@ export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
         postsFiles[i].name
       );
       try {
-        postsMetaData.push(
-          extractPostMetadataFromRawPost(downloadedPost[0].toString())
-        );
+        postsMetaData.push(extractPostMetadataFromRawPost(downloadedPost));
       } catch (error) {
         console.error(error);
       }
