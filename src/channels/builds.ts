@@ -40,13 +40,14 @@ const postVercelBuild = async (vercelToken: string): Promise<boolean> => {
             {
               // payload consists of the build command, the name of the project, and the git repo data
               body: JSON.stringify({
-                buildCommand: "npm run build",
-                name: process.env.VERCEL_PROJECT,
+                // buildCommand: "npm run build",
                 gitSource: {
                   ref: deployment.meta.githubCommitRef,
                   repoId: deployment.meta.githubRepoId,
                   type: "github",
                 },
+                name: process.env.VERCEL_PROJECT,
+                target: "production",
               }),
               headers: {
                 Authorization: `Bearer ${process.env.VERCEL_TOKEN}`,

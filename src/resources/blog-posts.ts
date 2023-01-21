@@ -31,19 +31,18 @@ const extractPostMetadataFromRawPost = (postContents: string): PostMetaData => {
   };
 };
 
-export const fetchBlogPostDataFromFileSystem = async (
+export const fetchBlogPostDataFromFileSystem = (
   slug: string,
   postsDir: string
-): Promise<PostData> => {
+): PostData => {
   const postFileFullPath = path.join(postsDir, `${slug}.md`);
   const fileContents = fs.readFileSync(postFileFullPath, "utf8");
-  const rawPost = matter(fileContents);
-  return {
-    contents: rawPost.content,
-    date: rawPost.data.date,
-    slug: slug,
-    title: rawPost.data.title,
-  };
+  try {
+    return getPostContentsResponse(fileContents, slug);
+  } catch (error) {
+    console.error(error);
+    throw new Error("post data is missing");
+  }
 };
 
 export const fetchBlogPostDataFromGCPBucket = async (
@@ -57,19 +56,13 @@ export const fetchBlogPostDataFromGCPBucket = async (
       .bucket(bucketName)
       .file(`published/${slug}.md`)
       .download();
-    fileContents = rawFileContents.toString();
+    fileContents = matter(rawFileContents.toString()).content;
   } catch (error) {
     console.error(error);
     throw new Error("failed during GCP storage file retrieval process");
   }
   try {
-    const metaData = extractPostMetadataFromRawPost(fileContents);
-    return {
-      contents: fileContents,
-      date: metaData.date,
-      slug: slug,
-      title: metaData.title,
-    };
+    return getPostContentsResponse(fileContents, slug);
   } catch (error) {
     console.error(error);
     throw new Error("post data is missing");
@@ -147,6 +140,20 @@ export const getGCPStorageClient = (): Storage => {
         })
       : new Storage();
   return storage;
+};
+
+export const getPostContentsResponse = (
+  fileContents: string,
+  slug: string
+): PostData => {
+  const meta = extractPostMetadataFromRawPost(fileContents);
+  const processedPost = matter(fileContents);
+  return {
+    contents: processedPost.content,
+    date: meta.date,
+    slug: slug,
+    title: meta.title,
+  };
 };
 
 const sortPostsMetaDataByDateProp = (

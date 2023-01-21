@@ -3,18 +3,18 @@
 <!-- TOC -->
 
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
-  - [what is this ?](#what-is-this-)
-  - [pre requisites](#pre-requisites)
-  - [nice to have](#nice-to-have)
-  - [how to run and setup](#how-to-run-and-setup)
-  - [CI/CD](#cicd)
-    - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
-    - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
-  - [API resources](#api-resources)
-    - [blog posts](#blog-posts)
-    - [builds](#builds)
-  - [Contribution guidelines](#contribution-guidelines)
-  - [Contributors](#contributors)
+    - [what is this ?](#what-is-this-)
+    - [pre requisites](#pre-requisites)
+    - [nice to have](#nice-to-have)
+    - [how to run and setup](#how-to-run-and-setup)
+    - [CI/CD](#cicd)
+        - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
+        - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+    - [API resources](#api-resources)
+        - [blog posts](#blog-posts)
+        - [builds](#builds)
+    - [Contribution guidelines](#contribution-guidelines)
+    - [Contributors](#contributors)
 
 <!-- /TOC -->
 

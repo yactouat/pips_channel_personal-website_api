@@ -6,7 +6,7 @@ import {
   // fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts";
-import postVercelBuild from "./resources/builds";
+import postVercelBuild from "./channels/builds";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {

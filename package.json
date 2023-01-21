@@ -1,13 +1,13 @@
 {
   "name": "pips_channel_personal-website_api",
-  "version": "1.1.1",
-  "description": "",
+  "version": "1.1.2",
+  "description": "api.yactouat.com",
   "main": "./dist/api.js",
   "scripts": {
     "build": "tsc",
     "dev": "NODE_ENV=development ts-node ./src/api.ts",
     "start": "node ./dist/api.js",
-    "test": "jest"
+    "test": "jest --clearCache && jest"
   },
   "keywords": [],
   "author": "Yacine Touati <yacine.touati.pro@gmail.com>",
