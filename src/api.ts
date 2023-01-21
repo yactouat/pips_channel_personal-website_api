@@ -6,30 +6,17 @@ import {
   fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts";
-import postVercelBuild from "./channels/builds";
+import { getVercelBuilds, postVercelBuild } from "./channels/builds";
+import sendResponse from "./helpers/send-response";
+import { allowVercelAccess } from "./middlewares/allow-vercel-access";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
 
-// using mocks in development mode
-const MOCK_POSTS_DIR = "MOCK_posts";
-
 const API = express();
 API.use(express.json());
-
-const sendResponse = (
-  res: express.Response,
-  status: number,
-  msg: string,
-  data: {}[] | {} | null = null
-) => {
-  res.status(status).json({
-    msg,
-    data,
-  });
-};
 
 API.get("/", (req, res) => {
   sendResponse(res, 200, "api.yactouat.com is up and running");
@@ -56,7 +43,16 @@ API.get("/blog-posts/:slug", async (req, res) => {
   }
 });
 
-API.post("/builds", async (req, res) => {
+API.get("/builds", async (req, res) => {
+  const builds = await getVercelBuilds(process.env.NODE_ENV !== "development");
+  if (builds.length > 0) {
+    sendResponse(res, 200, `${builds.length} builds fetched`, builds);
+  } else {
+    sendResponse(res, 404, "no builds found");
+  }
+});
+
+API.post("/builds", allowVercelAccess, async (req, res) => {
   const buildWentThrough = await postVercelBuild(req.body.vercelToken ?? "");
   if (buildWentThrough) {
     sendResponse(res, 200, "new build triggered");
@@ -66,6 +62,8 @@ API.post("/builds", async (req, res) => {
 });
 
 if (process.env.NODE_ENV === "development") {
+  // using mocks in development mode
+  const MOCK_POSTS_DIR = "MOCK_posts";
   // blog post retrieved from file system
   API.get("/local/blog-posts", (req, res) => {
     const blogPostsMetadata =
