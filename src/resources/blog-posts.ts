@@ -48,24 +48,23 @@ export const fetchBlogPostDataFromFileSystem = (
 export const fetchBlogPostDataFromGCPBucket = async (
   slug: string
 ): Promise<PostData> => {
-  let fileContents = "";
   try {
     const bucketName = process.env.GCP_BUCKET as string;
     const storage = getGCPStorageClient();
-    const rawFileContents = await storage
-      .bucket(bucketName)
-      .file(`published/${slug}.md`)
-      .download();
-    fileContents = matter(rawFileContents.toString()).content;
+    const downloadedPost = await getGcpDownloadedPostStr(
+      storage,
+      bucketName,
+      `published/${slug}.md`
+    );
+    try {
+      return getPostContentsResponse(downloadedPost, slug);
+    } catch (error) {
+      console.error(error);
+      throw new Error("post data is missing");
+    }
   } catch (error) {
     console.error(error);
     throw new Error("failed during GCP storage file retrieval process");
-  }
-  try {
-    return getPostContentsResponse(fileContents, slug);
-  } catch (error) {
-    console.error(error);
-    throw new Error("post data is missing");
   }
 };
 
@@ -81,12 +80,11 @@ export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
     );
     const postsMetaData: PostMetaData[] = [];
     for (let i = 0; i < postsFiles.length; i++) {
-      const fileName = postsFiles[i].name;
-      const downloadedPost = await storage
-        .bucket(bucketName)
-        .file(fileName)
-        .download();
-      console.log(fileName, "FILE NAME");
+      const downloadedPost = await getGcpDownloadedPostStr(
+        storage,
+        bucketName,
+        postsFiles[i].name
+      );
       try {
         postsMetaData.push(
           extractPostMetadataFromRawPost(downloadedPost[0].toString())
@@ -130,6 +128,18 @@ export const fetchBlogPostsMetadataFromFileSystem = (
     });
   // Sort posts by date DESC
   return sortPostsMetaDataByDateProp(postsMetaData as PostMetaData[]);
+};
+
+export const getGcpDownloadedPostStr = async (
+  storage: Storage,
+  bucketName: string,
+  source: string
+): Promise<string> => {
+  const downloadedPost = await storage
+    .bucket(bucketName)
+    .file(source)
+    .download();
+  return downloadedPost[0].toString();
 };
 
 export const getGCPStorageClient = (): Storage => {

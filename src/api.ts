@@ -1,9 +1,9 @@
 import express from "express";
 
 import {
-  // fetchBlogPostDataFromFileSystem,
+  fetchBlogPostDataFromFileSystem,
   fetchBlogPostDataFromGCPBucket,
-  // fetchBlogPostsMetadataFromFileSystem,
+  fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts";
 import postVercelBuild from "./channels/builds";
@@ -13,8 +13,8 @@ if (process.env.NODE_ENV === "development") {
   require("dotenv").config();
 }
 
-// using mocks for now while I'm still developing the API
-// const MOCK_POSTS_DIR = "MOCK_posts";
+// using mocks in development mode
+const MOCK_POSTS_DIR = "MOCK_posts";
 
 const API = express();
 API.use(express.json());
@@ -65,30 +65,32 @@ API.post("/builds", async (req, res) => {
   }
 });
 
-// blog post retrieved from file system
-// API.get("/blog-posts", (req, res) => {
-//   const blogPostsMetadata =
-//     fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
-//   sendResponse(
-//     res,
-//     200,
-//     `${blogPostsMetadata.length} blog posts fetched`,
-//     blogPostsMetadata
-//   );
-// });
-// API.get("/blog-posts/:slug", async (req, res) => {
-//   const slug = req.params.slug;
-//   try {
-//     const blogPostdata = await fetchBlogPostDataFromFileSystem(
-//       slug,
-//       MOCK_POSTS_DIR
-//     );
-//     sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
-//   } catch (error) {
-//     console.error(error);
-//     sendResponse(res, 404, `${slug} blog post data not found`);
-//   }
-// });
+if (process.env.NODE_ENV === "development") {
+  // blog post retrieved from file system
+  API.get("/local/blog-posts", (req, res) => {
+    const blogPostsMetadata =
+      fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
+    sendResponse(
+      res,
+      200,
+      `${blogPostsMetadata.length} blog posts fetched`,
+      blogPostsMetadata
+    );
+  });
+  API.get("/local/blog-posts/:slug", async (req, res) => {
+    const slug = req.params.slug;
+    try {
+      const blogPostdata = await fetchBlogPostDataFromFileSystem(
+        slug,
+        MOCK_POSTS_DIR
+      );
+      sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
+    } catch (error) {
+      console.error(error);
+      sendResponse(res, 404, `${slug} blog post data not found`);
+    }
+  });
+}
 
 const server = API.listen(8080, () => {
   console.log("API server running on port 8080");
