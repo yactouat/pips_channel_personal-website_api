@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 
-import { BuildResource as VercelDeployment } from "pips_resources_definitions";
+import { BuildResource as VercelDeployment } from "pips_resources_definitions/dist/resources";
 
 const MASKED = "MASKED";
 

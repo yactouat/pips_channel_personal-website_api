@@ -3,7 +3,7 @@ import matter from "gray-matter";
 import path from "path";
 import { Storage } from "@google-cloud/storage";
 
-import { BlogPostResource } from "pips_resources_definitions";
+import { BlogPostResource } from "pips_resources_definitions/dist/resources";
 
 const extractPostDataFromRawPost = (
   postContents: string,
@@ -103,7 +103,6 @@ export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
   }
 };
 
-// TODO test this
 export const fetchBlogPostsMetadataFromFileSystem = (
   postsDir: string
 ): {

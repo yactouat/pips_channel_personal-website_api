@@ -17,11 +17,9 @@
     - [builds](#builds)
       - [GET /builds](#get-builds)
       - [POST /builds](#post-builds)
-    - [resources](#resources)
-      - [DELETE /resources/:slug](#delete-resourcesslug)
-      - [GET /resources](#get-resources)
-      - [POST /resources](#post-resources)
-      - [PUT /resources/:slug](#put-resourcesslug)
+    - [users](#users)
+      - [POST /users](#post-users)
+      - [PUT /users](#put-users)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -188,6 +186,8 @@ This API resource is related to Vercel builds, mainly the ones for my blog websi
   }
   ```
 
+- please not that the input vercel token acts an authentication system for this endpoint for now
+
 - response is a build success response =>
 
   ```json
@@ -229,100 +229,46 @@ This API resource is related to Vercel builds, mainly the ones for my blog websi
   ```
 
 - this endpoint triggers a Vercel build with no build cache, useful when you want to re run static site generation to create/update blog pages
-- please not that the input vercel token acts an authentication system for this endpoint
 - possible error codes are =>
   - 401
   - 500
 
-### resources
+### users
 
-This is a meta resource that allows to CRUD all other resources taxonomy in the PIPS system.
+<!-- TODO -->
 
-#### DELETE `/resources/:slug`
+#### POST `/users`
 
-- this is an authenticated endpoint that requires a bearer token to be sent in the request headers under the `Authorization` key
-- sample response would look like =>
-
-  ```json
-  {
-    "msg": "<slug> resource type deleted",
-    "data": null
-  }
-  ```
-
-#### GET `/resources`
-
-- response is the list of all resources as in =>
-
-  ```json
-  {
-    "msg": "1 resources fetched",
-    "data": [
-      {
-        "attributes": ["contents", "date", "slug", "title"],
-        "description": "blog posts...",
-        "name": "blog posts",
-        "slug": "blog-posts"
-      }
-    ]
-  }
-  ```
-
-#### POST `/resources`
-
-- this is an authenticated endpoint that requires a bearer token to be sent in the request headers under the `Authorization` key
-
+- creates a new user in the database, e.g. sign up
 - input payload must look like =>
 
   ```json
   {
-    "name": "blog posts",
-    "description": "blog posts...",
-    "attributes": ["contents", "date", "slug", "title"]
+    "email": "myemail@domain.com",
+    "password": "my-password",
+    "socialHandle": "my-social-handle",
+    "socialHandleType": "GitHub" // or "LinkedIn"
   }
   ```
 
-- response is the created resource as in =>
+- response is a success response =>
 
   ```json
   {
-    "msg": "blog posts resource type created",
+    "msg": "user created, thanks for registering to to api.yactouat.com; please wait for your account to be verified, you will be informed by email when it is the case",
     "data": {
-      "attributes": ["contents", "date", "slug", "title"],
-      "description": "blog posts...",
-      "name": "blog posts",
-      "slug": "blog-posts"
+      "email": "myemail@domain.com",
+      "socialHandle": "my-social-handle",
+      "socialHandleType": "GitHub"
     }
   }
   ```
 
-#### PUT `/resources/:slug`
+- when you create an account, it is not verified by default, you will be informed by email when your account is verified
 
-- this is an authenticated endpoint that requires a bearer token to be sent in the request headers under the `Authorization` key
+<!-- TODO -->
 
-- input payload must look like =>
-
-  ```json
-  {
-    "name": "blog posts",
-    "description": "blog posts...",
-    "attributes": ["contents", "date", "slug", "title", "someNewAttribute"]
-  }
-  ```
-
-- response is the updated resource as in =>
-
-  ```json
-  {
-    "msg": "blog posts resource type updated",
-    "data": {
-      "attributes": ["contents", "date", "slug", "title", "someNewAttribute"],
-      "description": "blog posts...",
-      "name": "blog posts",
-      "slug": "blog-posts"
-    }
-  }
-  ```
+#### PUT `/users`
 
 ## Contribution guidelines
 
