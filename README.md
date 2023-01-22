@@ -3,24 +3,28 @@
 <!-- TOC -->
 
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
-    - [what is this ?](#what-is-this-)
-    - [pre requisites](#pre-requisites)
-    - [nice to have](#nice-to-have)
-    - [how to run and setup](#how-to-run-and-setup)
-    - [CI/CD](#cicd)
-        - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
-        - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
-    - [API resources](#api-resources)
-        - [blog posts](#blog-posts)
-        - [builds](#builds)
-    - [Contribution guidelines](#contribution-guidelines)
-    - [Contributors](#contributors)
+  - [what is this ?](#what-is-this-)
+  - [pre requisites](#pre-requisites)
+  - [nice to have](#nice-to-have)
+  - [how to run and setup](#how-to-run-and-setup)
+  - [CI/CD](#cicd)
+    - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
+    - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+  - [API resources](#api-resources)
+    - [blog posts](#blog-posts)
+      - [GET /blog-posts](#get-blog-posts)
+      - [GET /blog-posts/:slug](#get-blog-postsslug)
+    - [builds](#builds)
+      - [GET /builds](#get-builds)
+      - [POST /builds](#post-builds)
+  - [Contribution guidelines](#contribution-guidelines)
+  - [Contributors](#contributors)
 
 <!-- /TOC -->
 
 ## what is this ?
 
-the server-side code that powers my personal website API, feel free to use this as a template for your own API
+the server-side code that powers my PIPS (Portable Integrated Personal System) JSON API, feel free to use this as a template for your own API
 
 ## pre requisites
 
@@ -41,6 +45,7 @@ the server-side code that powers my personal website API, feel free to use this 
 - run `npm run start` to start the server on port 8080
 - when developping locally, make sure you have your Google Application Default credentials setup; if not just run `gcloud auth application-default login` command
 - I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can use the `.env.example` file as a template for your own `.env` file
+- there are routes that can be only accessed locally for convenience, check out the `./src/api.ts` routes that start with `/local`
 
 ## CI/CD
 
@@ -77,53 +82,116 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 ### blog posts
 
-- a get request to `/blog-posts` will return a list of published blog posts metadata as in =>
+#### GET `/blog-posts`
+
+- response is a list of published blog posts metadata as in =>
 
   ```json
-  "msg": "blog posts data fetched",
-  "data": [
-    {
+  {
+    "msg": "2 blog posts fetched",
+    "data": [
+      {
+        "date": "2021-01-02",
+        "slug": "newest-blog-post",
+        "title": "newest blog post"
+      },
+      {
+        "date": "2021-01-01",
+        "slug": "blog-post",
+        "title": "blog post"
+      }
+    ]
+  }
+  ```
+
+#### GET `/blog-posts/:slug`
+
+- response is the searched blog post data as in =>
+
+  ```json
+  {
+    "msg": "newest-blog-post blog post data fetched",
+    "data": {
+      "contents": "# this is the markdown contents of this blog post",
       "date": "2021-01-02",
       "slug": "newest-blog-post",
       "title": "newest blog post"
-    },
-    {
-      "date": "2021-01-01",
-      "slug": "blog-post",
-      "title": "blog post"
     }
-  ]
-  ```
-
-- a get request to `/blog-posts/:slug` will return a list of published blog posts metadata as in =>
-
-  ```json
-  "msg": "newest-blog-post blog post data fetched",
-  "data": {
-    "contents": "# this is the markdown contents of this blog post",
-    "date": "2021-01-02",
-    "slug": "newest-blog-post",
-    "title": "newest blog post"
   }
   ```
 
 - please note each of this JSON item's props, other than `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
-  - the date is written in the format `YYYY-MM-DD`
-  - the file name should be in the format `the-slug.md`
-  - the `slug` prop is used to generate the URL of the blog post
-  - the `title` prop is used to generate the title of the blog post
 - a blog post that is not found will return a 404
 
 ### builds
 
-- a post request to `/builds` will return a build success response or a 401 =>
+#### GET `/builds`
+
+- response is the list of the previous Vercel builds as in =>
 
   ```json
-  "msg": "new build triggered",
-  "data": null
+  {
+    "msg": "1 builds fetched",
+    "data": [
+      {
+        "uid": "MASKED",
+        "name": "MASKED",
+        "url": "MASKED",
+        "created": null,
+        "state": "MASKED",
+        "type": "MASKED",
+        "creator": null,
+        "inspectorUrl": "MASKED",
+        "meta": {
+          "githubCommitAuthorName": "yactouat",
+          "githubCommitMessage": "content links open in external tab",
+          "githubCommitOrg": "yactouat",
+          "githubCommitRef": "master",
+          "githubCommitRepo": "pips_channel_personal-website_webapp",
+          "githubCommitSha": "a141c64a8852f48c58e29cb0d1d68d388500f2e8",
+          "githubDeployment": "MASKED",
+          "githubOrg": "yactouat",
+          "githubRepo": "pips_channel_personal-website_webapp",
+          "githubRepoOwnerType": "MASKED",
+          "githubCommitRepoId": "MASKED",
+          "githubRepoId": "MASKED",
+          "githubCommitAuthorLogin": "MASKED"
+        },
+        "target": "production",
+        "aliasError": null,
+        "aliasAssigned": null,
+        "isRollbackCandidate": null,
+        "createdAt": null,
+        "buildingAt": null,
+        "ready": 1674391339108
+      }
+    ]
+  }
   ```
 
-- this triggers a Vercel full build, useful when you want to re run static site generation to create/update blog pages
+- here, the `meta` prop is the most interesting one, it contains the GitHub commit metadata that triggered the build
+
+#### POST `/builds`
+
+- input payload must look like =>
+
+  ```json
+  {
+    "vercelToken": "my-vercel-api-token"
+  }
+  ```
+
+- response is a build success response or a 401 =>
+
+  ```json
+  {
+    "msg": "new build triggered",
+    "data": null
+  }
+  ```
+
+- this endpoint triggers a Vercel build with no build cache, useful when you want to re run static site generation to create/update blog pages
+- please not that the input vercel token acts an authentication system for this endpoint
 
 ## Contribution guidelines
 
