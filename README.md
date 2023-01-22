@@ -3,6 +3,7 @@
 <!-- TOC -->
 
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
+- [- API resources]#api-resources - [blog posts]#blog-posts - [GET /blog-posts]#get-blog-posts - [GET /blog-posts/:slug]#get-blog-postsslug - [builds]#builds - [GET /builds]#get-builds - [POST /builds](#--api-resourcesapi-resources---blog-postsblog-posts---get-blog-postsget-blog-posts---get-blog-postsslugget-blog-postsslug---buildsbuilds---get-buildsget-builds---post-builds)
   - [what is this ?](#what-is-this-)
   - [pre requisites](#pre-requisites)
   - [nice to have](#nice-to-have)
