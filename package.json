@@ -26,6 +26,7 @@
     "@google-cloud/storage": "^6.9.0",
     "express": "^4.18.2",
     "gray-matter": "^4.0.3",
-    "node-fetch": "^2.6.8"
+    "node-fetch": "^2.6.8",
+    "pips_resources_definitions": "^0.1.0"
   }
 }

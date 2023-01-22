@@ -6,7 +6,7 @@ import {
   fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts";
-import { getVercelBuilds, postVercelBuild } from "./channels/builds";
+import { getVercelBuilds, postVercelBuild } from "./resources/builds";
 import sendResponse from "./helpers/send-response";
 import { allowVercelAccess } from "./middlewares/allow-vercel-access";
 
