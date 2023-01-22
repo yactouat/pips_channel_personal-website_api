@@ -17,6 +17,11 @@
     - [builds](#builds)
       - [GET /builds](#get-builds)
       - [POST /builds](#post-builds)
+    - [resources](#resources)
+      - [DELETE /resources/:slug](#delete-resourcesslug)
+      - [GET /resources](#get-resources)
+      - [POST /resources](#post-resources)
+      - [PUT /resources/:slug](#put-resourcesslug)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -125,6 +130,8 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 ### builds
 
+This API resource is related to Vercel builds, mainly the ones for my blog website. To be able to use the functionalities related to this resource, you'll need a `VERCEL_TOKEN` set in your environment variables.
+
 #### GET `/builds`
 
 - response is the list of the previous Vercel builds as in =>
@@ -181,17 +188,141 @@ the deploying to the GCP part happens whenever a new release is created on Githu
   }
   ```
 
-- response is a build success response or a 401 =>
+- response is a build success response =>
 
   ```json
   {
     "msg": "new build triggered",
-    "data": null
+    "data": {
+      "uid": "MASKED",
+      "name": "MASKED",
+      "url": "MASKED",
+      "created": null,
+      "state": "MASKED",
+      "type": "MASKED",
+      "creator": null,
+      "inspectorUrl": "MASKED",
+      "meta": {
+        "githubCommitAuthorName": "yactouat",
+        "githubCommitMessage": "content links open in external tab",
+        "githubCommitOrg": "yactouat",
+        "githubCommitRef": "master",
+        "githubCommitRepo": "pips_channel_personal-website_webapp",
+        "githubCommitSha": "a141c64a8852f48c58e29cb0d1d68d388500f2e8",
+        "githubDeployment": "MASKED",
+        "githubOrg": "yactouat",
+        "githubRepo": "pips_channel_personal-website_webapp",
+        "githubRepoOwnerType": "MASKED",
+        "githubCommitRepoId": "MASKED",
+        "githubRepoId": "MASKED",
+        "githubCommitAuthorLogin": "MASKED"
+      },
+      "target": "production",
+      "aliasError": null,
+      "aliasAssigned": null,
+      "isRollbackCandidate": null,
+      "createdAt": null,
+      "buildingAt": null,
+      "ready": 1674391339108
+    }
   }
   ```
 
 - this endpoint triggers a Vercel build with no build cache, useful when you want to re run static site generation to create/update blog pages
 - please not that the input vercel token acts an authentication system for this endpoint
+- possible error codes are =>
+  - 401
+  - 500
+
+### resources
+
+This is a meta resource that allows to CRUD all other resources taxonomy in the PIPS system.
+
+#### DELETE `/resources/:slug`
+
+- this is an authenticated endpoint that requires a bearer token to be sent in the request headers under the `Authorization` key
+- sample response would look like =>
+
+  ```json
+  {
+    "msg": "<slug> resource type deleted",
+    "data": null
+  }
+  ```
+
+#### GET `/resources`
+
+- response is the list of all resources as in =>
+
+  ```json
+  {
+    "msg": "1 resources fetched",
+    "data": [
+      {
+        "attributes": ["contents", "date", "slug", "title"],
+        "description": "blog posts...",
+        "name": "blog posts",
+        "slug": "blog-posts"
+      }
+    ]
+  }
+  ```
+
+#### POST `/resources`
+
+- this is an authenticated endpoint that requires a bearer token to be sent in the request headers under the `Authorization` key
+
+- input payload must look like =>
+
+  ```json
+  {
+    "name": "blog posts",
+    "description": "blog posts...",
+    "attributes": ["contents", "date", "slug", "title"]
+  }
+  ```
+
+- response is the created resource as in =>
+
+  ```json
+  {
+    "msg": "blog posts resource type created",
+    "data": {
+      "attributes": ["contents", "date", "slug", "title"],
+      "description": "blog posts...",
+      "name": "blog posts",
+      "slug": "blog-posts"
+    }
+  }
+  ```
+
+#### PUT `/resources/:slug`
+
+- this is an authenticated endpoint that requires a bearer token to be sent in the request headers under the `Authorization` key
+
+- input payload must look like =>
+
+  ```json
+  {
+    "name": "blog posts",
+    "description": "blog posts...",
+    "attributes": ["contents", "date", "slug", "title", "someNewAttribute"]
+  }
+  ```
+
+- response is the updated resource as in =>
+
+  ```json
+  {
+    "msg": "blog posts resource type updated",
+    "data": {
+      "attributes": ["contents", "date", "slug", "title", "someNewAttribute"],
+      "description": "blog posts...",
+      "name": "blog posts",
+      "slug": "blog-posts"
+    }
+  }
+  ```
 
 ## Contribution guidelines
 
