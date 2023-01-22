@@ -3,7 +3,6 @@
 <!-- TOC -->
 
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
-- [- API resources]#api-resources - [blog posts]#blog-posts - [GET /blog-posts]#get-blog-posts - [GET /blog-posts/:slug]#get-blog-postsslug - [builds]#builds - [GET /builds]#get-builds - [POST /builds](#--api-resourcesapi-resources---blog-postsblog-posts---get-blog-postsget-blog-posts---get-blog-postsslugget-blog-postsslug---buildsbuilds---get-buildsget-builds---post-builds)
   - [what is this ?](#what-is-this-)
   - [pre requisites](#pre-requisites)
   - [nice to have](#nice-to-have)
@@ -18,9 +17,6 @@
     - [builds](#builds)
       - [GET /builds](#get-builds)
       - [POST /builds](#post-builds)
-    - [users](#users)
-      - [POST /users](#post-users)
-      - [PUT /users](#put-users)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -233,43 +229,6 @@ This API resource is related to Vercel builds, mainly the ones for my blog websi
 - possible error codes are =>
   - 401
   - 500
-
-### users
-
-<!-- TODO -->
-
-#### POST `/users`
-
-- creates a new user in the database, e.g. sign up
-- input payload must look like =>
-
-  ```json
-  {
-    "email": "myemail@domain.com",
-    "password": "my-password",
-    "socialHandle": "my-social-handle",
-    "socialHandleType": "GitHub" // or "LinkedIn"
-  }
-  ```
-
-- response is a success response =>
-
-  ```json
-  {
-    "msg": "user created, thanks for registering to to api.yactouat.com; please wait for your account to be verified, you will be informed by email when it is the case",
-    "data": {
-      "email": "myemail@domain.com",
-      "socialHandle": "my-social-handle",
-      "socialHandleType": "GitHub"
-    }
-  }
-  ```
-
-- when you create an account, it is not verified by default, you will be informed by email when your account is verified
-
-<!-- TODO -->
-
-#### PUT `/users`
 
 ## Contribution guidelines
 
