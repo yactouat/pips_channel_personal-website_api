@@ -3,17 +3,12 @@ import matter from "gray-matter";
 import path from "path";
 import { Storage } from "@google-cloud/storage";
 
-interface PostMetaData {
-  date: string;
-  slug: string;
-  title: string;
-}
+import { BlogPostResource } from "pips_resources_definitions";
 
-interface PostData extends PostMetaData {
-  contents: string;
-}
-
-const extractPostMetadataFromRawPost = (postContents: string): PostMetaData => {
+const extractPostDataFromRawPost = (
+  postContents: string,
+  slug?: string
+): BlogPostResource => {
   // Use gray-matter to parse the post metadata section
   const postMetadata = matter(postContents);
   if (
@@ -23,10 +18,12 @@ const extractPostMetadataFromRawPost = (postContents: string): PostMetaData => {
   ) {
     throw new Error("post metadata is missing");
   }
-  // Combine the metadata with the slug
+  // Combine the metadata with the slug and add the post contents
+  const returnedSlug = slug == undefined ? postMetadata.data.slug : slug;
   return {
+    contents: postMetadata.content,
     date: postMetadata.data.date,
-    slug: postMetadata.data.slug,
+    slug: returnedSlug,
     title: postMetadata.data.title,
   };
 };
@@ -34,11 +31,11 @@ const extractPostMetadataFromRawPost = (postContents: string): PostMetaData => {
 export const fetchBlogPostDataFromFileSystem = (
   slug: string,
   postsDir: string
-): PostData => {
+): BlogPostResource => {
   const postFileFullPath = path.join(postsDir, `${slug}.md`);
   const fileContents = fs.readFileSync(postFileFullPath, "utf8");
   try {
-    return getPostContentsResponse(fileContents, slug);
+    return extractPostDataFromRawPost(fileContents, slug);
   } catch (error) {
     console.error(error);
     throw new Error("post data is missing");
@@ -47,17 +44,17 @@ export const fetchBlogPostDataFromFileSystem = (
 
 export const fetchBlogPostDataFromGCPBucket = async (
   slug: string
-): Promise<PostData> => {
+): Promise<BlogPostResource> => {
   try {
     const bucketName = process.env.GCP_BUCKET as string;
     const storage = getGCPStorageClient();
-    const downloadedPost = await getGcpDownloadedPostStr(
+    const downloadedPostContents = await getGcpDownloadedPostStr(
       storage,
       bucketName,
       `published/${slug}.md`
     );
     try {
-      return getPostContentsResponse(downloadedPost, slug);
+      return extractPostDataFromRawPost(downloadedPostContents, slug);
     } catch (error) {
       console.error(error);
       throw new Error("post data is missing");
@@ -69,7 +66,11 @@ export const fetchBlogPostDataFromGCPBucket = async (
 };
 
 export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
-  PostMetaData[]
+  {
+    date: string;
+    slug: string;
+    title: string;
+  }[]
 > => {
   const storage = getGCPStorageClient();
   try {
@@ -78,7 +79,11 @@ export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
     postsFiles = postsFiles.filter(
       (post) => post.name.startsWith("published") && post.name.endsWith(".md")
     );
-    const postsMetaData: PostMetaData[] = [];
+    const posts: {
+      date: string;
+      slug: string;
+      title: string;
+    }[] = [];
     for (let i = 0; i < postsFiles.length; i++) {
       const downloadedPost = await getGcpDownloadedPostStr(
         storage,
@@ -86,32 +91,35 @@ export const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
         postsFiles[i].name
       );
       try {
-        postsMetaData.push(extractPostMetadataFromRawPost(downloadedPost));
+        posts.push(extractPostDataFromRawPost(downloadedPost));
       } catch (error) {
         console.error(error);
       }
     }
-    return sortPostsMetaDataByDateProp(postsMetaData);
+    return getPostsMetaSortedByDate(posts as BlogPostResource[]);
   } catch (error) {
     console.error(error);
     return [];
   }
 };
 
+// TODO test this
 export const fetchBlogPostsMetadataFromFileSystem = (
   postsDir: string
-): PostMetaData[] => {
+): {
+  date: string;
+  slug: string;
+  title: string;
+}[] => {
   // Get file names under /posts
   const postsFileNames = fs.readdirSync(path.join(process.cwd(), postsDir));
-  const postsMetaData: {}[] = postsFileNames
+  const posts = postsFileNames
     .map((fileName) => {
-      // Remove ".md" from file name to get their slug
-      const postSlug = fileName.replace(/\.md$/, "");
       // Read markdown file as an utf-8 encoded string
       const fullPath = path.join(postsDir, fileName);
       const fileContents = fs.readFileSync(fullPath, "utf8");
       try {
-        return extractPostMetadataFromRawPost(fileContents);
+        return extractPostDataFromRawPost(fileContents);
       } catch (error) {
         return {};
       }
@@ -125,7 +133,7 @@ export const fetchBlogPostsMetadataFromFileSystem = (
       );
     });
   // Sort posts by date DESC
-  return sortPostsMetaDataByDateProp(postsMetaData as PostMetaData[]);
+  return getPostsMetaSortedByDate(posts as BlogPostResource[]);
 };
 
 export const getGcpDownloadedPostStr = async (
@@ -150,24 +158,22 @@ export const getGCPStorageClient = (): Storage => {
   return storage;
 };
 
-export const getPostContentsResponse = (
-  fileContents: string,
-  slug: string
-): PostData => {
-  const meta = extractPostMetadataFromRawPost(fileContents);
-  const processedPost = matter(fileContents);
-  return {
-    contents: processedPost.content,
-    date: meta.date,
-    slug: slug,
-    title: meta.title,
-  };
-};
-
-const sortPostsMetaDataByDateProp = (
-  postsMetaData: PostMetaData[]
-): PostMetaData[] => {
-  return postsMetaData.sort((a, b) => {
-    return a.date < b.date ? 1 : -1;
-  });
+const getPostsMetaSortedByDate = (
+  posts: BlogPostResource[]
+): {
+  date: string;
+  slug: string;
+  title: string;
+}[] => {
+  return posts
+    .sort((a, b) => {
+      return a.date < b.date ? 1 : -1;
+    })
+    .map((post) => {
+      return {
+        date: post.date,
+        slug: post.slug,
+        title: post.title,
+      };
+    });
 };
