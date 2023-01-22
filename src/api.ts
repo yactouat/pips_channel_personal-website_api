@@ -55,9 +55,12 @@ API.get("/builds", async (req, res) => {
 API.post("/builds", allowVercelAccess, async (req, res) => {
   const buildWentThrough = await postVercelBuild(req.body.vercelToken ?? "");
   if (buildWentThrough) {
-    sendResponse(res, 200, "new build triggered");
+    const latestBuilds = await getVercelBuilds(
+      process.env.NODE_ENV !== "development"
+    );
+    sendResponse(res, 200, "new build triggered", latestBuilds[0]);
   } else {
-    sendResponse(res, 401, "action not authorized");
+    sendResponse(res, 500, "build failed");
   }
 });
 
