@@ -84,6 +84,7 @@ if you have provisioned a database that requires a root SSL certificate, you'll 
   - you should also set =>
     - a `GCP_BUCKET` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
     - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
+    - ! the path of your secret should not be a relative one
 
 ## connecting to the Supabase Postgres instance (if you're using Supabase too)
 
@@ -92,8 +93,9 @@ if you have provisioned a database that requires a root SSL certificate, you'll 
 - a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8081 after a `docker-compose up` command
 - if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres)
 - as for the GCP bucket credentials, you'll also need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the server root certificate of your Postgres instance
-- the Secret Manager secret name should be named `PGSSLROOTCERT` and the value should be the contents of the root certificate you have downloaded from Supabase
+- the Secret Manager secret name should be named `PGSSLROOTCERT` and the value should be the contents of the root certificate you have downloaded from Supabase (dont forget to grant the service account that created your service access to the secret)
 - you should also set a few repository secrets with relevant values based on what you see in the `./env.example` file
+- ! the path of your secret, under the `PGSSLROOTCERT` env var, should not be in the same directory than the bucket credentials secret
 
 ## API resources
 
