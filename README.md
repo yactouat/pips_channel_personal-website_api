@@ -8,6 +8,7 @@
   - [nice to have](#nice-to-have)
   - [how to run and setup](#how-to-run-and-setup)
   - [CI/CD](#cicd)
+  - [connecting to the Supabase Postgres instance if you're using Supabase too](#connecting-to-the-supabase-postgres-instance-if-youre-using-supabase-too)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
   - [API resources](#api-resources)
@@ -35,6 +36,7 @@ the server-side code that powers my PIPS (Portable Integrated Personal System) J
 - [Typescript](https://www.typescriptlang.org/)
 - a Google Cloud Platform (GCP) project
 - you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud init` if it's not the case)
+- you need to have provisioned a PostgreSQL database; I'm personnaly using Supabase, if you do too you'll need to download the server root certificate and store it in the repo root folder as `supabase-root.crt`
 
 ## nice to have
 
@@ -57,6 +59,14 @@ testing with jest, building with tsc, and deploying to the GCP, are all automate
 the testing and building part happens whenever a pull request is created or updated, be aware that a file tracking the latest build commit SHA is used to facilitate auto push, so dont be surprised if you need to pull again before pushing your work on a PR;
 
 the deploying to the GCP part happens whenever a new release is created on Github; you must have a project with the billing setup on the GCP
+
+if you have provisioned a database that requires a root SSL certificate, you'll need to configure a secret for this
+
+## connecting to the Supabase Postgres instance (if you're using Supabase too)
+
+- you'll need to download the root SSL certificate from the Supabase dashboard
+- a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8080 after a `docker-compose up` command
+- if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres#connection-pool)
 
 ### deploying to the GCP manually
 
