@@ -2,7 +2,7 @@ import { Client } from "pg";
 import express from "express";
 import fs from "fs";
 
-import { allowVercelAccess } from "./middlewares/allow-vercel-access";
+import { allowVercelAccess } from "./allow-vercel-access";
 import {
   fetchBlogPostDataFromFileSystem,
   fetchBlogPostDataFromGCPBucket,
@@ -10,7 +10,7 @@ import {
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts";
 import { getVercelBuilds, postVercelBuild } from "./resources/builds";
-import sendResponse from "./helpers/send-response";
+import sendResponse from "./send-response";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {

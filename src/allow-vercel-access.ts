@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import sendResponse from "../helpers/send-response";
+import sendResponse from "./send-response";
 
 export const allowVercelAccess = async (
   req: Request,
