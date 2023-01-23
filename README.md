@@ -65,7 +65,8 @@ if you have provisioned a database that requires a root SSL certificate, you'll 
 ## connecting to the Supabase Postgres instance (if you're using Supabase too)
 
 - you'll need to download the root SSL certificate from the Supabase dashboard
-- a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8080 after a `docker-compose up` command
+- also, a few env vars will need to be set, both locally and on your deployed service (check out <https://www.postgresql.org/docs/9.1/libpq-envars.html>)
+- a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8081 after a `docker-compose up` command
 - if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres#connection-pool)
 
 ### deploying to the GCP manually

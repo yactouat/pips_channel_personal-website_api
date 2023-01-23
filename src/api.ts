@@ -1,5 +1,8 @@
+import { Client } from "pg";
 import express from "express";
+import fs from "fs";
 
+import { allowVercelAccess } from "./middlewares/allow-vercel-access";
 import {
   fetchBlogPostDataFromFileSystem,
   fetchBlogPostDataFromGCPBucket,
@@ -8,7 +11,6 @@ import {
 } from "./resources/blog-posts";
 import { getVercelBuilds, postVercelBuild } from "./resources/builds";
 import sendResponse from "./helpers/send-response";
-import { allowVercelAccess } from "./middlewares/allow-vercel-access";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -18,8 +20,44 @@ if (process.env.NODE_ENV === "development") {
 const API = express();
 API.use(express.json());
 
-API.get("/", (req, res) => {
-  sendResponse(res, 200, "api.yactouat.com is up and running");
+API.get("/", async (req, res) => {
+  const pgClientConfig = {
+    database: process.env.PGDATABASE,
+    host: process.env.PGHOST,
+    // this object will be passed to the TLSSocket constructor
+    ssl: {
+      ca: fs.readFileSync(process.env.PGSSLROOTCERT as string).toString(),
+    },
+  };
+  const pgClient = new Client(pgClientConfig);
+  let dbIsUp = true;
+  try {
+    await pgClient.connect();
+    const qRes = await pgClient.query("SELECT $1::text as message", [
+      "DB IS UP",
+    ]);
+    console.log(qRes.rows[0].message);
+  } catch (error) {
+    dbIsUp = false;
+    console.error(error);
+  } finally {
+    await pgClient.end();
+  }
+  sendResponse(
+    res,
+    200,
+    dbIsUp
+      ? "api.yactouat.com is available"
+      : "api.yactouat.com is partly available",
+    {
+      services: [
+        {
+          service: "database",
+          status: dbIsUp ? "up" : "down",
+        },
+      ],
+    }
+  );
 });
 
 API.get("/blog-posts", async (req, res) => {
