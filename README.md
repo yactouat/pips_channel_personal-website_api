@@ -8,9 +8,9 @@
   - [nice to have](#nice-to-have)
   - [how to run and setup](#how-to-run-and-setup)
   - [CI/CD](#cicd)
-  - [connecting to the Supabase Postgres instance if you're using Supabase too](#connecting-to-the-supabase-postgres-instance-if-youre-using-supabase-too)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+  - [connecting to the Supabase Postgres instance if you're using Supabase too](#connecting-to-the-supabase-postgres-instance-if-youre-using-supabase-too)
   - [API resources](#api-resources)
     - [blog posts](#blog-posts)
       - [GET /blog-posts](#get-blog-posts)
@@ -62,13 +62,6 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 if you have provisioned a database that requires a root SSL certificate, you'll need to configure a secret for this
 
-## connecting to the Supabase Postgres instance (if you're using Supabase too)
-
-- you'll need to download the root SSL certificate from the Supabase dashboard
-- also, a few env vars will need to be set, both locally and on your deployed service (check out <https://www.postgresql.org/docs/9.1/libpq-envars.html>)
-- a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8081 after a `docker-compose up` command
-- if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres#connection-pool)
-
 ### deploying to the GCP manually
 
 - running `gcloud run deploy`, you may be prompted several times to confirm stuff, and you can also specify a few options:
@@ -91,6 +84,16 @@ if you have provisioned a database that requires a root SSL certificate, you'll 
   - you should also set =>
     - a `GCP_BUCKET` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
     - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
+
+## connecting to the Supabase Postgres instance (if you're using Supabase too)
+
+- you'll need to download the root SSL certificate from the Supabase dashboard
+- also, a few env vars will need to be set, both locally and on your deployed service (check out <https://www.postgresql.org/docs/9.1/libpq-envars.html>)
+- a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8081 after a `docker-compose up` command
+- if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- as for the GCP bucket credentials, you'll also need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the server root certificate of your Postgres instance
+- the Secret Manager secret name should be named `PGSSLROOTCERT` and the value should be the contents of the root certificate you have downloaded from Supabase
+- you should also set a few repository secrets with relevant values based on what you see in the `./env.example` file
 
 ## API resources
 

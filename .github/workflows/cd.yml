@@ -1,6 +1,8 @@
 name: CD
 
 on:
+  push:
+    branches: ["feature/post-users-and-verify-them"]
   # this action will only run if you create a release
   release:
     types: [created]
@@ -28,6 +30,6 @@ jobs:
         run: |
           gcloud run deploy ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }} \
             --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} \
-            --update-secrets=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }}=GCP_STORAGE_CREDENTIALS:latest \
-            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_BUCKET=${{ secrets.GCP_BUCKET }},VERCEL_PROJECT=${{ secrets.VERCEL_PROJECT }},VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }} \
+            --update-secrets=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }}=GCP_STORAGE_CREDENTIALS:latest,${{ secrets.PGSSLROOTCERT }}=PGSSLROOTCERT:latest \
+            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_BUCKET=${{ secrets.GCP_BUCKET }},VERCEL_PROJECT=${{ secrets.VERCEL_PROJECT }},VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }},PGSSLROOTCERT=${{ secrets.PGSSLROOTCERT }} \
             --allow-unauthenticated
