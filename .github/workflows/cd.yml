@@ -31,5 +31,5 @@ jobs:
           gcloud run deploy ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }} \
             --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} \
             --update-secrets=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }}=GCP_STORAGE_CREDENTIALS:latest,${{ secrets.PGSSLROOTCERT }}=PGSSLROOTCERT:latest \
-            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_BUCKET=${{ secrets.GCP_BUCKET }},VERCEL_PROJECT=${{ secrets.VERCEL_PROJECT }},VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }},PGSSLROOTCERT=${{ secrets.PGSSLROOTCERT }} \
+            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_BUCKET=${{ secrets.GCP_BUCKET }},VERCEL_PROJECT=${{ secrets.VERCEL_PROJECT }},VERCEL_TOKEN=${{ secrets.VERCEL_TOKEN }},PGSSLROOTCERT=${{ secrets.PGSSLROOTCERT }},PGHOST=${{ secrets.PGHOST }},PGPASSWORD=${{ secrets.PGPASSWORD }},PGPORT=${{ secrets.PGPORT }},PGSSLMODE=${{ secrets.PGSSLMODE }},PGUSER=${{ secrets.PGUSER }},PGDATABASE=${{ secrets.PGDATABASE }} \
             --allow-unauthenticated
