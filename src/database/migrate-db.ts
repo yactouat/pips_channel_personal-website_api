@@ -21,3 +21,5 @@ const migrateDb = async () => {
 if (argv[1].endsWith("migrate-db.ts") || argv[1].endsWith("migrate-db.js")) {
   migrateDb();
 }
+
+export default migrateDb;
