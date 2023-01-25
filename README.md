@@ -51,6 +51,8 @@ the server-side code that powers my PIPS (Portable Integrated Personal System) J
 - when developping locally, make sure you have your Google Application Default credentials setup; if not just run `gcloud auth application-default login` command
 - I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can use the `.env.example` file as a template for your own `.env` file
 - there are routes that can be only accessed locally for convenience, check out the `./src/api.ts` routes that start with `/local`
+- you can use the `pgAdmin` tool provided in the docker application stack to connect to the database locally
+- to run the migrations, run `npm run migrate-db-dev`
 
 ## CI/CD
 
@@ -96,6 +98,7 @@ if you have provisioned a database that requires a root SSL certificate, you'll 
 - the Secret Manager secret name should be named `PGSSLROOTCERT` and the value should be the contents of the root certificate you have downloaded from Supabase (dont forget to grant the service account that created your service access to the secret)
 - you should also set a few repository secrets with relevant values based on what you see in the `./env.example` file
 - ! the path of your secret, under the `PGSSLROOTCERT` env var, should not be in the same directory than the bucket credentials secret
+- on each new release, migrations are run on the live database before the server starts
 
 ## API resources
 
