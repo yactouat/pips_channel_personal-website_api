@@ -50,7 +50,6 @@ the server-side code that powers my PIPS (Portable Integrated Personal System) J
 - run `npm run start` to start the server on port 8080
 - when developping locally, make sure you have your Google Application Default credentials setup; if not just run `gcloud auth application-default login` command
 - I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can use the `.env.example` file as a template for your own `.env` file
-- there are routes that can be only accessed locally for convenience, check out the `./src/api.ts` routes that start with `/local`
 - you can use the `pgAdmin` tool provided in the docker application stack to connect to the database locally
 - to run the migrations, run `npm run migrate-db-dev`
 

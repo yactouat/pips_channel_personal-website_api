@@ -1,15 +1,15 @@
 import express from "express";
+import { body, validationResult } from "express-validator";
+import { SocialHandleType } from "pips_resources_definitions/dist/types";
 
-import { allowVercelAccess } from "./allow-vercel-access";
-import {
-  fetchBlogPostDataFromFileSystem,
-  fetchBlogPostDataFromGCPBucket,
-  fetchBlogPostsMetadataFromFileSystem,
-  fetchBlogPostsMetadataFromGCPBucket,
-} from "./resources/blog-posts";
+import allowVercelAccess from "./resources/builds/allow-vercel-access";
 import getPgClient from "./database/get-pg-client";
-import { getVercelBuilds, postVercelBuild } from "./resources/builds";
+import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
+import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
+import getVercelBuilds from "./resources/builds/get-vercel-builds";
+import postVercelBuild from "./resources/builds/post-vercel-builds";
 import sendResponse from "./send-response";
+import validateSocialHandleType from "./resources/users/validate-social-handle-type";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -93,34 +93,46 @@ API.post("/builds", allowVercelAccess, async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV === "development") {
-  // using mocks in development mode
-  const MOCK_POSTS_DIR = "MOCK_posts";
-  // blog post retrieved from file system
-  API.get("/local/blog-posts", (req, res) => {
-    const blogPostsMetadata =
-      fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
-    sendResponse(
-      res,
-      200,
-      `${blogPostsMetadata.length} blog posts fetched`,
-      blogPostsMetadata
-    );
-  });
-  API.get("/local/blog-posts/:slug", async (req, res) => {
-    const slug = req.params.slug;
-    try {
-      const blogPostdata = await fetchBlogPostDataFromFileSystem(
-        slug,
-        MOCK_POSTS_DIR
+API.post(
+  "/users",
+  body("email").isEmail(),
+  body("password").isStrongPassword(),
+  body("socialHandle").notEmpty().isString(),
+  body("socialHandleType").custom((value) => {
+    return validateSocialHandleType(value);
+  }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return sendResponse(
+        res,
+        400,
+        "invalid request, no user has been created",
+        errors.array()
       );
-      sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
+    }
+    const pgClient = getPgClient();
+    try {
+      await pgClient.connect();
+      const qRes = await pgClient.query(
+        "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
+        [
+          req.body.email,
+          req.body.password,
+          req.body.socialHandle,
+          req.body.socialHandleType,
+        ]
+      );
+      const user = qRes.rows[0];
+      sendResponse(res, 201, "user created", user);
     } catch (error) {
       console.error(error);
-      sendResponse(res, 404, `${slug} blog post data not found`);
+      sendResponse(res, 500, "user creation failed");
+    } finally {
+      await pgClient.end();
     }
-  });
-}
+  }
+);
 
 const server = API.listen(8080, () => {
   console.log("API server running on port 8080");
