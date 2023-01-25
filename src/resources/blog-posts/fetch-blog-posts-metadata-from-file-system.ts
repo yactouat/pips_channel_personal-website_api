@@ -5,7 +5,7 @@ import path from "path";
 import extractPostDataFromRawPost from "./extract-post-data-from-raw-post";
 import getPostsMetaSortedByDate from "./get-posts-meta-sorted-by-date";
 
-export const fetchBlogPostsMetadataFromFileSystem = (
+const fetchBlogPostsMetadataFromFileSystem = (
   postsDir: string
 ): {
   date: string;
@@ -36,3 +36,5 @@ export const fetchBlogPostsMetadataFromFileSystem = (
   // Sort posts by date DESC
   return getPostsMetaSortedByDate(posts as BlogPostResource[]);
 };
+
+export default fetchBlogPostsMetadataFromFileSystem;
