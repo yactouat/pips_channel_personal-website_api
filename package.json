@@ -6,8 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "NODE_ENV=development ts-node ./src/api.ts",
-    "migrate-db": "NODE_ENV=production node ./dist/migrate-db.js",
-    "migrate-db-dev": "NODE_ENV=development ts-node ./src/migrate-db.ts",
+    "migrate-db": "NODE_ENV=production node ./dist/database/migrate-db.js",
+    "migrate-db-dev": "NODE_ENV=development ts-node ./src/database/migrate-db.ts",
     "start": "node ./dist/api.js",
     "test": "jest --clearCache && jest"
   },

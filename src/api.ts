@@ -1,6 +1,4 @@
-import { Client } from "pg";
 import express from "express";
-import fs from "fs";
 
 import { allowVercelAccess } from "./allow-vercel-access";
 import {
@@ -9,6 +7,7 @@ import {
   fetchBlogPostsMetadataFromFileSystem,
   fetchBlogPostsMetadataFromGCPBucket,
 } from "./resources/blog-posts";
+import getPgClient from "./database/get-pg-client";
 import { getVercelBuilds, postVercelBuild } from "./resources/builds";
 import sendResponse from "./send-response";
 
@@ -21,16 +20,8 @@ const API = express();
 API.use(express.json());
 
 API.get("/", async (req, res) => {
-  const pgClientConfig = {
-    database: process.env.PGDATABASE,
-    host: process.env.PGHOST,
-    // this object will be passed to the TLSSocket constructor
-    ssl: {
-      ca: fs.readFileSync(process.env.PGSSLROOTCERT as string).toString(),
-    },
-  };
-  const pgClient = new Client(pgClientConfig);
   let dbIsUp = true;
+  const pgClient = getPgClient();
   try {
     await pgClient.connect();
     const qRes = await pgClient.query("SELECT $1::text as message", [

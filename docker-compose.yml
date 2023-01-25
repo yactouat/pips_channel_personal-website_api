@@ -1,5 +1,6 @@
 volumes:
   pgadmin-vol:
+  pgsql-vol:
 
 services:
   pgadmin:
@@ -13,3 +14,15 @@ services:
       - 8081:8080
     volumes:
       - pgadmin-vol:/var/lib/pgadmin
+
+  pgsql:
+    image: postgres:15.1
+    restart: always
+    environment:
+      POSTGRES_DB: api
+      POSTGRES_PASSWORD: pwd
+      POSTGRES_USER: usr
+    volumes:
+      - pgsql-vol:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
