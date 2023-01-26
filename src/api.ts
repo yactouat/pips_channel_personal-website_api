@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { body, validationResult } from "express-validator";
 import express from "express";
+import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import allowVercelAccess from "./resources/builds/allow-vercel-access";
@@ -62,6 +63,7 @@ API.post(
     if (!errors.isEmpty()) {
       sendValidatorErrorRes(res, errors);
     } else {
+      let token = "";
       let authed = false;
       const inputPassword = req.body.password;
       const pgClient = getPgClient();
@@ -78,6 +80,12 @@ API.post(
       const user = userSelectQuery.rows[0] as UserResource;
       try {
         authed = await bcrypt.compare(inputPassword, user.password as string);
+        token = authed
+          ? await jwt.sign(
+              { email: user.email },
+              process.env.JWT_SECRET as string
+            )
+          : "";
       } catch (error) {
         console.error(error);
       }
@@ -85,7 +93,7 @@ API.post(
       if (authed == false) {
         sendResponse(res, 401, "invalid credentials");
       } else {
-        sendResponse(res, 200, "user authenticated", user);
+        sendResponse(res, 200, "auth token issued", { token });
       }
       await pgClient.end();
     }
