@@ -62,22 +62,32 @@ API.post(
     if (!errors.isEmpty()) {
       sendValidatorErrorRes(res, errors);
     } else {
+      let authed = false;
       const inputPassword = req.body.password;
       const pgClient = getPgClient();
       try {
         await pgClient.connect();
-        const userSelectQuery = await pgClient.query(
-          `SELECT * FROM users WHERE email = $1`,
-          [req.body.email]
-        );
-        const user = userSelectQuery.rows[0] as UserResource;
-        await bcrypt.compare(inputPassword, user.password as string);
-        sendResponse(res, 200, "user authenticated");
       } catch (error) {
-        sendResponse(res, 401, "unauthorized");
-      } finally {
-        await pgClient.end();
+        sendResponse(res, 500, "server error");
+        return;
       }
+      const userSelectQuery = await pgClient.query(
+        `SELECT * FROM users WHERE email = $1`,
+        [req.body.email]
+      );
+      const user = userSelectQuery.rows[0] as UserResource;
+      try {
+        authed = await bcrypt.compare(inputPassword, user.password as string);
+      } catch (error) {
+        console.error(error);
+      }
+      user.password = null;
+      if (authed == false) {
+        sendResponse(res, 401, "invalid credentials");
+      } else {
+        sendResponse(res, 200, "user authenticated", user);
+      }
+      await pgClient.end();
     }
   }
 );
