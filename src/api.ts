@@ -1,6 +1,7 @@
-import express from "express";
+import bcrypt from "bcrypt";
 import { body, validationResult } from "express-validator";
-import { SocialHandleType } from "pips_resources_definitions/dist/types";
+import express from "express";
+import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import allowVercelAccess from "./resources/builds/allow-vercel-access";
 import getPgClient from "./database/get-pg-client";
@@ -8,8 +9,9 @@ import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-po
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
 import getVercelBuilds from "./resources/builds/get-vercel-builds";
 import postVercelBuild from "./resources/builds/post-vercel-builds";
-import sendResponse from "./send-response";
+import sendResponse from "./responses/send-response";
 import validateSocialHandleType from "./resources/users/validate-social-handle-type";
+import sendValidatorErrorRes from "./responses/send-validator-error-res";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -50,6 +52,35 @@ API.get("/", async (req, res) => {
     }
   );
 });
+
+API.post(
+  "/auth-tokens",
+  body("email").isEmail(),
+  body("password").notEmpty().isString(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidatorErrorRes(res, errors);
+    } else {
+      const inputPassword = req.body.password;
+      const pgClient = getPgClient();
+      try {
+        await pgClient.connect();
+        const userSelectQuery = await pgClient.query(
+          `SELECT * FROM users WHERE email = $1`,
+          [req.body.email]
+        );
+        const user = userSelectQuery.rows[0] as UserResource;
+        await bcrypt.compare(inputPassword, user.password as string);
+        sendResponse(res, 200, "user authenticated");
+      } catch (error) {
+        sendResponse(res, 401, "unauthorized");
+      } finally {
+        await pgClient.end();
+      }
+    }
+  }
+);
 
 API.get("/blog-posts", async (req, res) => {
   const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();
@@ -104,32 +135,31 @@ API.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return sendResponse(
-        res,
-        400,
-        "invalid request, no user has been created",
-        errors.array()
-      );
-    }
-    const pgClient = getPgClient();
-    try {
-      await pgClient.connect();
-      const qRes = await pgClient.query(
-        "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
-        [
-          req.body.email,
-          req.body.password,
-          req.body.socialHandle,
-          req.body.socialHandleType,
-        ]
-      );
-      const user = qRes.rows[0];
-      sendResponse(res, 201, "user created", user);
-    } catch (error) {
-      console.error(error);
-      sendResponse(res, 500, "user creation failed");
-    } finally {
-      await pgClient.end();
+      sendValidatorErrorRes(res, errors);
+    } else {
+      const pgClient = getPgClient();
+      try {
+        await pgClient.connect();
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+        const insertUserQueryRes = await pgClient.query(
+          "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
+          [
+            req.body.email,
+            hashedPassword,
+            req.body.socialHandle,
+            req.body.socialHandleType,
+          ]
+        );
+        const user = insertUserQueryRes.rows[0] as UserResource;
+        user.password = null;
+        sendResponse(res, 201, "user created", user);
+      } catch (error) {
+        console.error(error);
+        sendResponse(res, 500, "user creation failed");
+      } finally {
+        await pgClient.end();
+      }
     }
   }
 );

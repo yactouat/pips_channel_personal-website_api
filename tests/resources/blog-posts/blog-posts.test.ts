@@ -1,5 +1,5 @@
-import fetchBlogPostDataFromFileSystem from "../../src/resources/blog-posts/fetch-blog-post-data-from-file-system";
-import fetchBlogPostsMetadataFromFileSystem from "../../src/resources/blog-posts/fetch-blog-posts-metadata-from-file-system";
+import fetchBlogPostDataFromFileSystem from "../../../src/resources/blog-posts/fetch-blog-post-data-from-file-system";
+import fetchBlogPostsMetadataFromFileSystem from "../../../src/resources/blog-posts/fetch-blog-posts-metadata-from-file-system";
 
 const MOCK_POSTS_DIR = "MOCK_posts";
 
