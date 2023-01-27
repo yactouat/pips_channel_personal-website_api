@@ -4,12 +4,9 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
-import allowVercelAccess from "./resources/builds/allow-vercel-access";
 import getPgClient from "./database/get-pg-client";
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
-import getVercelBuilds from "./resources/builds/get-vercel-builds";
-import postVercelBuild from "./resources/builds/post-vercel-builds";
 import sendResponse from "./responses/send-response";
 import validateSocialHandleType from "./resources/users/validate-social-handle-type";
 import sendValidatorErrorRes from "./responses/send-validator-error-res";
@@ -121,27 +118,6 @@ API.get("/blog-posts/:slug", async (req, res) => {
   }
 });
 
-API.get("/builds", async (req, res) => {
-  const builds = await getVercelBuilds(process.env.NODE_ENV !== "development");
-  if (builds.length > 0) {
-    sendResponse(res, 200, `${builds.length} builds fetched`, builds);
-  } else {
-    sendResponse(res, 404, "no builds found");
-  }
-});
-
-API.post("/builds", allowVercelAccess, async (req, res) => {
-  const buildWentThrough = await postVercelBuild(req.body.vercelToken ?? "");
-  if (buildWentThrough) {
-    const latestBuilds = await getVercelBuilds(
-      process.env.NODE_ENV !== "development"
-    );
-    sendResponse(res, 200, "new build triggered", latestBuilds[0]);
-  } else {
-    sendResponse(res, 500, "build failed");
-  }
-});
-
 API.post(
   "/users",
   body("email").isEmail(),
@@ -172,6 +148,7 @@ API.post(
         const user = insertUserQueryRes.rows[0] as UserResource;
         user.password = null;
         sendResponse(res, 201, "user created", user);
+        // TODO send PubSub message for user created containing user email
       } catch (error) {
         console.error(error);
         sendResponse(res, 500, "user creation failed");
