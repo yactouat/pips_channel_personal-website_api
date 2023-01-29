@@ -19,7 +19,7 @@ services:
     image: postgres:15.1
     restart: always
     environment:
-      PGDATABASE: api
+      POSTGRES_DB: api
       POSTGRES_PASSWORD: pwd
       POSTGRES_USER: usr
     volumes:

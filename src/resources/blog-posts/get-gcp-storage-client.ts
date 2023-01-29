@@ -2,7 +2,7 @@ import { Storage } from "@google-cloud/storage";
 
 const getGCPStorageClient = (): Storage => {
   const storage = new Storage({
-    keyFilename: `${process.env.BLOG_POSTS_BUCKET_VIEWER_SA_FILE_NAME}`,
+    keyFilename: `${process.env.BUCKET_VIEWER_SA_KEY_FILE_NAME}`,
   });
   return storage;
 };
