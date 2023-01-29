@@ -148,25 +148,21 @@ API.post(
         );
         const user = insertUserQueryRes.rows[0] as UserResource;
         user.password = null;
-        sendResponse(res, 201, "user created", user);
         // send PubSub message for user created event containing user email
         // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
         const dataBuffer = Buffer.from(user.email);
-        try {
-          // this below returns a message id (case I need it one day)
-          await getPubSubClient()
-            .topic(process.env.PUBSUB_USERS_TOPIC as string)
-            .publishMessage({
-              data: dataBuffer,
-              attributes: {
-                env: process.env.NODE_ENV as string,
-              },
-            });
-        } catch (error) {
-          // TODO better observability here
-          console.error(error);
-        }
+        // this below returns a message id (case I need it one day)
+        await getPubSubClient()
+          .topic(process.env.PUBSUB_USERS_TOPIC as string)
+          .publishMessage({
+            data: dataBuffer,
+            attributes: {
+              env: process.env.NODE_ENV as string,
+            },
+          });
+        sendResponse(res, 201, "user created", user);
       } catch (error) {
+        // TODO better observability here
         console.error(error);
         sendResponse(res, 500, "user creation failed");
       } finally {
