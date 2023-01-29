@@ -18,7 +18,10 @@ const migrateDb = async () => {
   pgClient.end();
 };
 
-if (argv[1].endsWith("migrate-db.ts") || argv[1].endsWith("migrate-db.js")) {
+if (
+  argv[1].includes("migrate-db") ||
+  (argv[2] && argv[2].includes("migrate-db"))
+) {
   migrateDb();
 }
 

@@ -1,7 +1,10 @@
 import bcrypt from "bcrypt";
 import { body, validationResult } from "express-validator";
 import express from "express";
-import { getPgClient } from "pips_resources_definitions/dist/behaviors";
+import {
+  getPgClient,
+  getUserFromDb,
+} from "pips_resources_definitions/dist/behaviors";
 import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
@@ -71,11 +74,7 @@ API.post(
         sendResponse(res, 500, "server error");
         return;
       }
-      const userSelectQuery = await pgClient.query(
-        `SELECT * FROM users WHERE email = $1`,
-        [req.body.email]
-      );
-      const user = userSelectQuery.rows[0] as UserResource;
+      const user = await getUserFromDb(req.body.email, pgClient);
       try {
         authed = await bcrypt.compare(inputPassword, user.password as string);
         token = authed
