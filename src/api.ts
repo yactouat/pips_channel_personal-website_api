@@ -84,10 +84,10 @@ API.post(
               process.env.JWT_SECRET as string
             )
           : "";
+        user.password = null;
       } catch (error) {
         console.error(error);
       }
-      user.password = null;
       if (authed == false) {
         sendResponse(res, 401, "invalid credentials");
       } else {
