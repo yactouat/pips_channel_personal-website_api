@@ -7,6 +7,8 @@
   - [pre requisites](#pre-requisites)
   - [GCP project](#gcp-project)
     - [the actual stuff](#the-actual-stuff)
+    - [service accounts and roles/permissions](#service-accounts-and-rolespermissions)
+      - [Cloud Run Deployer](#cloud-run-deployer)
     - [the SDK](#the-sdk)
   - [nice to have](#nice-to-have)
   - [how to run and setup](#how-to-run-and-setup)
@@ -44,6 +46,31 @@ the server-side code that powers my PIPS (Portable Integrated Personal System) J
 
 - a Google Cloud Platform (GCP) project
 - you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud auth application-default login` and `gcloud init` if it's not the case)
+
+### service accounts and roles/permissions
+
+Instead of using whatever default service account is affected automatically during the CI/CD process and while interacting with GCP APIs, I like to create dedicated service accounts:
+
+#### Cloud Run Deployer
+
+It has roles:
+
+- `Artifact Registry Writer`
+- `Cloud Build Editor`
+- `Cloud Build Service Account`
+- `Cloud Run Developer`
+- `Service Account User`
+
+Also, at some point, a default service account for Cloud Build in your project (`**@cloudbuild.gserviceaccount.com`) will be triggered, and it will need to have the:
+
+- `Artifact Registry Administrator` role
+- `Storage Admin` role
+
+Finally, the compute service account that will be used (`**--compute@developer.gserviceaccount.com`) will need to have the:
+
+- `Secret Manager Secret Accessor` role
+
+This is the result of a trial and error process, trying to set a service account from scratch to figure this out. Please don't hesitate to open an issue if you find a better way to do this.
 
 ### the SDK
 
