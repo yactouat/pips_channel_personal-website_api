@@ -10,6 +10,7 @@ import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-bl
 import sendResponse from "./responses/send-response";
 import validateSocialHandleType from "./resources/users/validate-social-handle-type";
 import sendValidatorErrorRes from "./responses/send-validator-error-res";
+import getPubSubClient from "./get-pubsub-client";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -148,7 +149,23 @@ API.post(
         const user = insertUserQueryRes.rows[0] as UserResource;
         user.password = null;
         sendResponse(res, 201, "user created", user);
-        // TODO send PubSub message for user created containing user email
+        // send PubSub message for user created event containing user email
+        // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+        const dataBuffer = Buffer.from(user.email);
+        try {
+          // this below returns a message id (case I need it one day)
+          await getPubSubClient()
+            .topic(process.env.GCP_PUBSUB_TOPIC as string)
+            .publishMessage({
+              data: dataBuffer,
+              attributes: {
+                env: process.env.NODE_ENV as string,
+              },
+            });
+        } catch (error) {
+          // TODO better observability here
+          console.error(error);
+        }
       } catch (error) {
         console.error(error);
         sendResponse(res, 500, "user creation failed");

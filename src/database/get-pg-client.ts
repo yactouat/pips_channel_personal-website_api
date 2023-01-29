@@ -26,7 +26,9 @@ const getPgClient = () => {
       host: process.env.PGHOST as string,
       // this object will be passed to the TLSSocket constructor
       ssl: {
-        ca: fs.readFileSync(process.env.PGSSLROOTCERT as string).toString(),
+        ca: fs
+          .readFileSync(process.env.SUPABASE_POSTGRES_ROOT_CERT as string)
+          .toString(),
       },
     };
   }

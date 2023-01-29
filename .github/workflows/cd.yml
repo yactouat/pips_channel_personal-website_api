@@ -24,13 +24,13 @@ jobs:
       - id: "auth-to-gcp"
         uses: "google-github-actions/auth@v1"
         with:
-          credentials_json: "${{ secrets.GCP_CLOUDRUN_CREDENTIALS }}"
+          credentials_json: "${{ secrets.CLOUD_RUN_DEPLOYER_SA_KEY }}"
       - name: "set up Google Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v1"
       - name: "deploy from source"
         run: |
-          gcloud run deploy ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }} \
-            --source=./ --region=${{ vars.GCP_REGION }} --port=${{ vars.GCP_PORT }} \
-            --update-secrets=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }}=GCP_STORAGE_CREDENTIALS:latest,${{ secrets.PGSSLROOTCERT }}=PGSSLROOTCERT:latest \
-            --set-env-vars=GCP_STORAGE_CREDENTIALS_SECRET_PATH=${{ secrets.GCP_STORAGE_CREDENTIALS_SECRET_PATH }},NODE_ENV=production,GCP_BUCKET=${{ secrets.GCP_BUCKET }},PGSSLROOTCERT=${{ secrets.PGSSLROOTCERT }},PGHOST=${{ secrets.PGHOST }},PGPASSWORD=${{ secrets.PGPASSWORD }},PGPORT=${{ secrets.PGPORT }},PGSSLMODE=${{ secrets.PGSSLMODE }},PGUSER=${{ secrets.PGUSER }},PGDATABASE=${{ secrets.PGDATABASE }},JWT_SECRET=${{ secrets.JWT_SECRET }} \
+          gcloud run deploy ${{ secrets.CLOUDRUN_SERVICE }} \
+            --source=./ --region=${{ secrets.CLOUDRUN_SERVICE_REGION }} --port=${{ secrets.CLOUDRUN_SERVICE_PORT }} \
+            --update-secrets=${{ secrets.BUCKET_VIEWER_SA_KEY_FILE_NAME }}=BUCKET_VIEWER_SA_KEY:latest,${{ secrets.SUPABASE_POSTGRES_ROOT_CERT_FILE_NAME }}=SUPABASE_POSTGRES_ROOT_CERT:latest \
+            --set-env-vars=BUCKET_VIEWER_SA_KEY_FILE_NAME=${{ secrets.BUCKET_VIEWER_SA_KEY_FILE_NAME }},NODE_ENV=production,BLOG_POSTS_BUCKET=${{ secrets.BLOG_POSTS_BUCKET }},SUPABASE_POSTGRES_ROOT_CERT_FILE_NAME=${{ secrets.SUPABASE_POSTGRES_ROOT_CERT_FILE_NAME }},POSTGRES_HOST=${{ secrets.POSTGRES_HOST }},POSTGRES_PWD=${{ secrets.POSTGRES_PWD }},POSTGRES_PORT=${{ secrets.POSTGRES_PORT }},POSTGRES_SSL_MODE=require,POSTGRES_USR=${{ secrets.POSTGRES_USR }},POSTGRES_DB=${{ secrets.POSTGRES_DB }},JWT_SECRET=${{ secrets.JWT_SECRET }},PUBSUB_USERS_TOPIC=${{ secrets.PUBSUB_USERS_TOPIC }} \
             --allow-unauthenticated
