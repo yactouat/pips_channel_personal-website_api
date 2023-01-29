@@ -1,8 +1,8 @@
 import { argv } from "process";
 import fs from "fs";
+import { getPgClient } from "pips_resources_definitions/dist/behaviors";
 
 import Migration from "./Migration";
-import getPgClient from "./get-pg-client";
 
 const migrateDb = async () => {
   // scan `migrations` folder

@@ -1,10 +1,10 @@
 import bcrypt from "bcrypt";
 import { body, validationResult } from "express-validator";
 import express from "express";
+import { getPgClient } from "pips_resources_definitions/dist/behaviors";
 import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
-import getPgClient from "./database/get-pg-client";
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
 import sendResponse from "./responses/send-response";
