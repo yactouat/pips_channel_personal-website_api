@@ -7,7 +7,7 @@ const fetchBlogPostDataFromGCPBucket = async (
   slug: string
 ): Promise<BlogPostResource> => {
   try {
-    const bucketName = process.env.GCP_BUCKET as string;
+    const bucketName = process.env.BLOG_POSTS_BUCKET as string;
     const storage = getGCPStorageClient();
     const downloadedPostContents = await getGcpDownloadedPostStr(
       storage,

@@ -16,14 +16,14 @@ const getPgClient = () => {
     require("dotenv").config();
   }
   let pgClientConfig: PgClientConfig = {
-    database: process.env.PGDATABASE as string,
-    host: process.env.PGHOST as string,
-    user: process.env.PGUSER as string,
+    database: process.env.POSTGRES_DB as string,
+    host: process.env.POSTGRES_HOST as string,
+    user: process.env.POSTGRES_USR as string,
   };
   if (process.env.NODE_ENV !== "development") {
     pgClientConfig = {
-      database: process.env.PGDATABASE as string,
-      host: process.env.PGHOST as string,
+      database: process.env.POSTGRES_DB as string,
+      host: process.env.POSTGRES_HOST as string,
       // this object will be passed to the TLSSocket constructor
       ssl: {
         ca: fs

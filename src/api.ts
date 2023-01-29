@@ -155,7 +155,7 @@ API.post(
         try {
           // this below returns a message id (case I need it one day)
           await getPubSubClient()
-            .topic(process.env.GCP_PUBSUB_TOPIC as string)
+            .topic(process.env.PUBSUB_USERS_TOPIC as string)
             .publishMessage({
               data: dataBuffer,
               attributes: {

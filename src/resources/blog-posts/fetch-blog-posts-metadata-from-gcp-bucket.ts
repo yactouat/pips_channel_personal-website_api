@@ -13,7 +13,7 @@ const fetchBlogPostsMetadataFromGCPBucket = async (): Promise<
 > => {
   const storage = getGCPStorageClient();
   try {
-    const bucketName = process.env.GCP_BUCKET as string;
+    const bucketName = process.env.BLOG_POSTS_BUCKET as string;
     let [postsFiles] = await storage.bucket(bucketName).getFiles();
     postsFiles = postsFiles.filter(
       (post) => post.name.startsWith("published") && post.name.endsWith(".md")
