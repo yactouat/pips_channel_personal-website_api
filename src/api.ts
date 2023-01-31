@@ -190,10 +190,10 @@ API.put(
         await pgClient.connect();
         // verify user
         const selectVerifTokenQueryRes = await pgClient.query(
-          `UPDATE users 
+          `UPDATE users uu
             SET verified = TRUE 
-            WHERE id = (
-              SELECT id 
+            WHERE uu.id = (
+              SELECT u.id 
               FROM users u 
               INNER JOIN tokens_users tu ON u.id = tu.user_id
               INNER JOIN tokens t ON tu.token_id = t.id
@@ -211,10 +211,10 @@ API.put(
         // TODO verify if can expire token
         const expireTokenQueryRes = await pgClient.query(
           `
-          UPDATE tokens
+          UPDATE tokens tu
           SET expired = 1
-          WHERE id = (
-            SELECT id
+          WHERE tu.id = (
+            SELECT t.id
             FROM tokens t
             WHERE t.token = $1
           ) RETURNING *

@@ -22,6 +22,8 @@
     - [blog posts](#blog-posts)
       - [GET /blog-posts](#get-blog-posts)
       - [GET /blog-posts/:slug](#get-blog-postsslug)
+    - [tokens](#tokens)
+      - [POST /tokens](#post-tokens)
     - [users](#users)
       - [POST /users](#post-users)
       - [PUT /users](#put-users)
@@ -208,6 +210,33 @@ home route at `/` should return =>
 - please note each of this JSON item's props, other than `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
 - a blog post that is not found will return a 404
 
+### tokens
+
+#### POST `/tokens`
+
+- generates a JWT token for the user or a 401 if the action is not authorized
+- input payload must look like =>
+
+  ```json
+  {
+    "email": "myemail@domain.com",
+    "password": "my-password",
+    "socialHandle": "my-social-handle",
+    "socialHandleType": "GitHub" // or "LinkedIn"
+  }
+  ```
+
+- a success response looks like so =>
+
+```json
+{
+  "msg": "auth token issued",
+  "data": {
+    "token": "some.jwt.token"
+  }
+}
+```
+
 ### users
 
 #### POST `/users`
@@ -230,9 +259,13 @@ home route at `/` should return =>
   {
     "msg": "thanks for registering to to api.yactouat.com; you will receive a verification link by email shortly",
     "data": {
-      "email": "myemail@domain.com",
-      "socialHandle": "my-social-handle",
-      "socialHandleType": "GitHub"
+      "token": "some.jwt.token",
+      "user": {
+        "email": "myemail@domain.com",
+        "password": null,
+        "socialHandle": "my-social-handle",
+        "socialHandleType": "GitHub"
+      }
     }
   }
   ```
@@ -240,6 +273,35 @@ home route at `/` should return =>
 - behind the scenes, the API just sends a Pub/Sub message to a topic that should be listened to by the PIPS system, specifically a mailer service that will send a verification email to the user
 
 #### PUT `/users`
+
+- updates a new user as `verified` in the database, after he/she has signed up and clicked on the verification link in the email sent to him/her
+- input payload must look like =>
+
+  ```json
+  {
+    "email": "myemail@domain.com",
+    "verificationToken": "special-token"
+  }
+  ```
+
+- response is a success response =>
+
+  ```json
+  {
+    "msg": "thanks for registering to to api.yactouat.com; you will receive a verification link by email shortly",
+    "data": {
+      "token": "some.jwt.token",
+      "user": {
+        "email": "myemail@domain.com",
+        "password": null,
+        "socialHandle": "my-social-handle",
+        "socialHandleType": "GitHub"
+      }
+    }
+  }
+  ```
+
+- the token used to verify the user is a one-time-use token, so it's status to `expired` in the database after the user has used it
 
 ## Contribution guidelines
 
