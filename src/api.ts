@@ -1,14 +1,19 @@
+import bcrypt from "bcrypt";
+import { body, validationResult } from "express-validator";
 import express from "express";
-
 import {
-  fetchBlogPostDataFromFileSystem,
-  fetchBlogPostDataFromGCPBucket,
-  fetchBlogPostsMetadataFromFileSystem,
-  fetchBlogPostsMetadataFromGCPBucket,
-} from "./resources/blog-posts";
-import { getVercelBuilds, postVercelBuild } from "./resources/builds";
-import sendResponse from "./helpers/send-response";
-import { allowVercelAccess } from "./middlewares/allow-vercel-access";
+  getPgClient,
+  getUserFromDb,
+} from "pips_resources_definitions/dist/behaviors";
+import { UserResource } from "pips_resources_definitions/dist/resources";
+
+import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
+import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
+import sendResponse from "./responses/send-response";
+import validateSocialHandleType from "./resources/users/validate-social-handle-type";
+import sendValidatorErrorRes from "./responses/send-validator-error-res";
+import getPubSubClient from "./get-pubsub-client";
+import signToken from "./resources/tokens/sign-token";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -18,8 +23,36 @@ if (process.env.NODE_ENV === "development") {
 const API = express();
 API.use(express.json());
 
-API.get("/", (req, res) => {
-  sendResponse(res, 200, "api.yactouat.com is up and running");
+API.get("/", async (req, res) => {
+  let dbIsUp = true;
+  const pgClient = getPgClient();
+  try {
+    await pgClient.connect();
+    const qRes = await pgClient.query("SELECT $1::text as message", [
+      "DB IS UP",
+    ]);
+    console.log(qRes.rows[0].message);
+  } catch (error) {
+    dbIsUp = false;
+    console.error(error);
+  } finally {
+    await pgClient.end();
+  }
+  sendResponse(
+    res,
+    200,
+    dbIsUp
+      ? "api.yactouat.com is available"
+      : "api.yactouat.com is partly available",
+    {
+      services: [
+        {
+          service: "database",
+          status: dbIsUp ? "up" : "down",
+        },
+      ],
+    }
+  );
 });
 
 API.get("/blog-posts", async (req, res) => {
@@ -43,55 +76,174 @@ API.get("/blog-posts/:slug", async (req, res) => {
   }
 });
 
-API.get("/builds", async (req, res) => {
-  const builds = await getVercelBuilds(process.env.NODE_ENV !== "development");
-  if (builds.length > 0) {
-    sendResponse(res, 200, `${builds.length} builds fetched`, builds);
-  } else {
-    sendResponse(res, 404, "no builds found");
-  }
-});
-
-API.post("/builds", allowVercelAccess, async (req, res) => {
-  const buildWentThrough = await postVercelBuild(req.body.vercelToken ?? "");
-  if (buildWentThrough) {
-    const latestBuilds = await getVercelBuilds(
-      process.env.NODE_ENV !== "development"
-    );
-    sendResponse(res, 200, "new build triggered", latestBuilds[0]);
-  } else {
-    sendResponse(res, 500, "build failed");
-  }
-});
-
-if (process.env.NODE_ENV === "development") {
-  // using mocks in development mode
-  const MOCK_POSTS_DIR = "MOCK_posts";
-  // blog post retrieved from file system
-  API.get("/local/blog-posts", (req, res) => {
-    const blogPostsMetadata =
-      fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR);
-    sendResponse(
-      res,
-      200,
-      `${blogPostsMetadata.length} blog posts fetched`,
-      blogPostsMetadata
-    );
-  });
-  API.get("/local/blog-posts/:slug", async (req, res) => {
-    const slug = req.params.slug;
-    try {
-      const blogPostdata = await fetchBlogPostDataFromFileSystem(
-        slug,
-        MOCK_POSTS_DIR
-      );
-      sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
-    } catch (error) {
-      console.error(error);
-      sendResponse(res, 404, `${slug} blog post data not found`);
+API.post(
+  "/tokens",
+  body("email").isEmail(),
+  body("password").notEmpty().isString(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidatorErrorRes(res, errors);
+    } else {
+      let token = "";
+      let authed = false;
+      const inputPassword = req.body.password;
+      const pgClient = getPgClient();
+      try {
+        await pgClient.connect();
+      } catch (error) {
+        sendResponse(res, 500, "server error");
+        return;
+      }
+      const user = await getUserFromDb(req.body.email, pgClient);
+      try {
+        authed = await bcrypt.compare(inputPassword, user.password as string);
+        token = authed
+          ? await signToken({
+              email: user.email,
+            })
+          : "";
+      } catch (error) {
+        console.error(error);
+      }
+      if (authed == false) {
+        sendResponse(res, 401, "invalid credentials");
+      } else {
+        sendResponse(res, 200, "auth token issued", { token });
+      }
+      await pgClient.end();
     }
-  });
-}
+  }
+);
+
+API.post(
+  "/users",
+  body("email").isEmail(),
+  body("password").isStrongPassword(),
+  body("socialHandle").notEmpty().isString(),
+  body("socialHandleType").custom((value) => {
+    return validateSocialHandleType(value);
+  }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidatorErrorRes(res, errors);
+    } else {
+      const pgClient = getPgClient();
+      try {
+        await pgClient.connect();
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
+        const insertUserQueryRes = await pgClient.query(
+          "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
+          [
+            req.body.email,
+            hashedPassword,
+            req.body.socialHandle,
+            req.body.socialHandleType,
+          ]
+        );
+        const user = insertUserQueryRes.rows[0] as UserResource;
+        user.password = null;
+        // send PubSub message for user created event containing user email
+        // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+        const dataBuffer = Buffer.from(user.email);
+        // this below returns a message id (case I need it one day)
+        await getPubSubClient()
+          .topic(process.env.PUBSUB_USERS_TOPIC as string)
+          .publishMessage({
+            data: dataBuffer,
+            attributes: {
+              env: process.env.NODE_ENV as string,
+            },
+          });
+        const authToken = await signToken({
+          email: user.email,
+        });
+        user.password = null;
+        sendResponse(res, 201, "user created", {
+          token: authToken,
+          user: user,
+        });
+      } catch (error) {
+        // TODO better observability here
+        console.error(error);
+        sendResponse(res, 500, "user creation failed");
+      } finally {
+        await pgClient.end();
+      }
+    }
+  }
+);
+
+API.put(
+  "/users/:email",
+  body("email").isEmail(),
+  body("verificationToken").isString(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidatorErrorRes(res, errors);
+    } else {
+      const pgClient = getPgClient();
+      let userHasBeenVerified = false;
+      try {
+        await pgClient.connect();
+        // verify user
+        const selectVerifTokenQueryRes = await pgClient.query(
+          `UPDATE users uu
+            SET verified = TRUE 
+            WHERE uu.id = (
+              SELECT u.id 
+              FROM users u 
+              INNER JOIN tokens_users tu ON u.id = tu.user_id
+              INNER JOIN tokens t ON tu.token_id = t.id
+              WHERE u.email = $1
+              AND t.token = $2
+              AND t.expired = 0
+            ) 
+            RETURNING *`,
+          [req.body.email, req.body.verificationToken]
+        );
+        userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
+        // expire token
+        if (userHasBeenVerified) {
+          const expireTokenQueryRes = await pgClient.query(
+            `
+            UPDATE tokens tu
+            SET expired = 1
+            WHERE tu.id = (
+              SELECT t.id
+              FROM tokens t
+              WHERE t.token = $1
+            ) RETURNING *
+          `,
+            [req.body.verificationToken]
+          );
+          userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
+        }
+      } catch (error) {
+        console.error(error);
+        userHasBeenVerified = false;
+      } finally {
+        await pgClient.end();
+      }
+      if (!userHasBeenVerified) {
+        sendResponse(res, 401, "user not verified");
+      } else {
+        const user = await getUserFromDb(req.body.email, pgClient);
+        const authToken = await signToken({
+          email: user.email,
+        });
+        user.password = null;
+        sendResponse(res, 201, "user verified", {
+          token: authToken,
+          user: user,
+        });
+      }
+    }
+  }
+);
 
 const server = API.listen(8080, () => {
   console.log("API server running on port 8080");

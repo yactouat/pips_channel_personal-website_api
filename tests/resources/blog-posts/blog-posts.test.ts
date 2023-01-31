@@ -1,7 +1,5 @@
-import {
-  fetchBlogPostDataFromFileSystem,
-  fetchBlogPostsMetadataFromFileSystem,
-} from "../../src/resources/blog-posts";
+import fetchBlogPostDataFromFileSystem from "../../../src/resources/blog-posts/fetch-blog-post-data-from-file-system";
+import fetchBlogPostsMetadataFromFileSystem from "../../../src/resources/blog-posts/fetch-blog-posts-metadata-from-file-system";
 
 const MOCK_POSTS_DIR = "MOCK_posts";
 
@@ -14,7 +12,8 @@ describe("blog-posts", () => {
 
   test("post with wrong metadata should not be present in posts list", () => {
     const actual = fetchBlogPostsMetadataFromFileSystem(MOCK_POSTS_DIR).find(
-      (post) => post.slug === "wrong-metadata-blog-post"
+      (post: { date: string; slug: string; title: string }) =>
+        post.slug === "wrong-metadata-blog-post"
     );
     expect(actual).toBeUndefined();
   });

@@ -5,18 +5,28 @@
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
   - [what is this ?](#what-is-this-)
   - [pre requisites](#pre-requisites)
+  - [GCP project](#gcp-project)
+    - [the actual stuff](#the-actual-stuff)
+    - [service accounts and roles/permissions](#service-accounts-and-rolespermissions)
+      - [Cloud Run Deployer](#cloud-run-deployer)
+    - [the SDK](#the-sdk)
   - [nice to have](#nice-to-have)
   - [how to run and setup](#how-to-run-and-setup)
   - [CI/CD](#cicd)
+  - [secrets and env vars](#secrets-and-env-vars)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
     - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
+  - [connecting to the Supabase Postgres instance if you're using Supabase too](#connecting-to-the-supabase-postgres-instance-if-youre-using-supabase-too)
+  - [Google Cloud PubSub](#google-cloud-pubsub)
   - [API resources](#api-resources)
     - [blog posts](#blog-posts)
       - [GET /blog-posts](#get-blog-posts)
       - [GET /blog-posts/:slug](#get-blog-postsslug)
-    - [builds](#builds)
-      - [GET /builds](#get-builds)
-      - [POST /builds](#post-builds)
+    - [tokens](#tokens)
+      - [POST /tokens](#post-tokens)
+    - [users](#users)
+      - [POST /users](#post-users)
+      - [PUT /users](#put-users)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -30,12 +40,47 @@ the server-side code that powers my PIPS (Portable Integrated Personal System) J
 
 - [Node.js](https://nodejs.org/en/)
 - [Typescript](https://www.typescriptlang.org/)
+- a GitHub account (but hey, you already have one, don't you ?)
+
+## GCP project
+
+### the actual stuff
+
 - a Google Cloud Platform (GCP) project
-- you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud init` if it's not the case)
+- you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud auth application-default login` and `gcloud init` if it's not the case)
+
+### service accounts and roles/permissions
+
+Instead of using whatever default service account is affected automatically during the CI/CD process and while interacting with GCP APIs, I like to create dedicated service accounts:
+
+#### Cloud Run Deployer
+
+It has roles:
+
+- `Artifact Registry Writer`
+- `Cloud Build Editor`
+- `Cloud Build Service Account`
+- `Cloud Run Developer`
+- `Service Account User`
+
+Also, at some point, a default service account for Cloud Build in your project (`**@cloudbuild.gserviceaccount.com`) will be triggered, and it will need to have the:
+
+- `Artifact Registry Administrator` role
+- `Storage Admin` role
+
+Finally, the compute service account that will be used (`**--compute@developer.gserviceaccount.com`) will need to have the:
+
+- `Secret Manager Secret Accessor` role
+
+This is the result of a trial and error process, trying to set a service account from scratch to figure this out. Please don't hesitate to open an issue if you find a better way to do this.
+
+### the SDK
+
+If you're running this in full local mode, you'll need to install the GCP SDK; I plan to do this in a not too distant future, but if you do it before me, I'd be happy to accept a PR !
 
 ## nice to have
 
-- a NextJS app' to consume this API that uses static generation (cf. `/builds` resource)
+- you can provision a PostgreSQL database if you plan to deploy the solution; I'm personnaly using Supabase, if you do too you'll need to download the server root certificate and store it in the repo as `./creds/supabase-root.crt` (git ignored)
 
 ## how to run and setup
 
@@ -43,17 +88,25 @@ the server-side code that powers my PIPS (Portable Integrated Personal System) J
 - run `npm install` to install the dependencies
 - run `npm run build` to build the project
 - run `npm run start` to start the server on port 8080
-- when developping locally, make sure you have your Google Application Default credentials setup; if not just run `gcloud auth application-default login` command
-- I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can use the `.env.example` file as a template for your own `.env` file
-- there are routes that can be only accessed locally for convenience, check out the `./src/api.ts` routes that start with `/local`
+- `docker compose up` will start a local postgres instance and a `pgAdmin` instance
+- to run the migrations, run `npm run migrate-db-dev`; otherwise they are run by default with `npm run dev` (and also `start`)
 
 ## CI/CD
 
 testing with jest, building with tsc, and deploying to the GCP, are all automated using Github Actions under the `.github/workflows` folder;
 
-the testing and building part happens whenever a pull request is created or updated, be aware that a file tracking the latest build commit SHA is used to facilitate auto push, so dont be surprised if you need to pull again before pushing your work on a PR;
+the testing and building part happens whenever a pull request is created or updated
 
 the deploying to the GCP part happens whenever a new release is created on Github; you must have a project with the billing setup on the GCP
+
+## secrets and env vars
+
+- all the secrets and env vars you need are listed in the GitHub workflows
+- a secret ending with `FILE_NAME` is a path to a file that contains the actual secret
+- a secret ending with `_KEY` is a JSON key (such as service acounts keys in the GCP) and its contents
+- I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can
+  - use the `.env.example` file as a template for your own `.env` file
+  - checkout out the GitHub workflows to see how the secrets and env vars are used
 
 ### deploying to the GCP manually
 
@@ -65,20 +118,54 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 
 ### deploying to the GCP automatically
 
-- you will need a service account key JSON file, you can create one in the GCP IAM and Admin section of the console
-- next, you'll need to create 2 secrets in the Github repo settings:
-  - `GCP_CLOUDRUN_CREDENTIALS` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
-  - `GCP_CLOUDRUN_SERVICE_NAME` and the value being the name of your Cloud Run service
-- you will also need specify sensitive and non-sensitive env vars for service name, region, port, etc., check out <https://docs.github.com/en/actions/learn-github-actions/contexts#vars-context> and the `./.github/workflows/cd.yml` file for more info
+- you may need several service account key JSON files, you can create them in the GCP IAM and Admin section of the console
+- to deploy the app' on Cloud Run, you'll need to create 2 secrets in the Github repo settings:
+  - `CLOUD_RUN_DEPLOYER_SA_KEY` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
+  - `CLOUDRUN_SERVICE` and the value being the name of your Cloud Run service
 - blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to =>
   - [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the stored blog posts contents
-  - the Secret Manager secret name should be named `GCP_STORAGE_CREDENTIALS` and the value should be another (or the same) Cloud Run service account JSON key file
+  - the Secret Manager secret name should be named `BUCKET_VIEWER_SA_KEY` and the value should be another (or the same) Cloud Run service account JSON key file
   - you of course need to have a GCP bucket created and populated with your blog posts contents
   - you should also set =>
-    - a `GCP_BUCKET` GitHub repository secret for the name of the GCP Cloud Storage bucket where your blog posts contents are stored
-    - a `GCP_STORAGE_CREDENTIALS_SECRET_PATH` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
+    - a `BLOG_POSTS_BUCKET` GitHub repository secret for the name of the GCP Cloud Storage BLOG_POSTS_BUCKET where your blog posts contents are stored
+    - a `BUCKET_VIEWER_SA_KEY_FILE_NAME` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
+    - ! the path of your secret should not be a relative one
+
+## connecting to the Supabase Postgres instance (if you're using Supabase too)
+
+- you'll need to download the root SSL certificate from the Supabase dashboard
+- also, a few env vars will need to be set, both locally and on your deployed service (check out <https://www.postgresql.org/docs/9.1/libpq-envars.html>)
+- a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8081 after a `docker-compose up` command
+- if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- as for the GCP BLOG_POSTS_BUCKET credentials, you'll also need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the server root certificate of your Postgres instance
+- the Secret Manager secret name should be named `SUPABASE_POSTGRES_ROOT_CERT` and the value should be the contents of the root certificate you have downloaded from Supabase (dont forget to grant the service account that created your service access to the secret)
+- you should also set a few repository secrets with relevant values based on what you see in the `./env.example` file and the workflos files
+- ! the path of your secret, under the `SUPABASE_POSTGRES_ROOT_CERT` env var, should not be in the same directory than the blog posts bucket credentials secret
+- on each new release, migrations are run on the live database before the server starts
+
+## Google Cloud PubSub
+
+I'm using PubSub to broadcast events across the PIPS system.
+
+You will need to create a topic to send a notification to when a new user is created. The topic fully qualified name should be set in the `PUBSUB_USERS_TOPIC` env var.
 
 ## API resources
+
+home route at `/` should return =>
+
+```json
+{
+  "msg": "api.yactouat.com is available",
+  "data": {
+    "services": [
+      {
+        "service": "database",
+        "status": "up"
+      }
+    ]
+  }
+}
+```
 
 ### blog posts
 
@@ -123,112 +210,100 @@ the deploying to the GCP part happens whenever a new release is created on Githu
 - please note each of this JSON item's props, other than `contents`, are retrieved from the meta data of the blog post file; so feel free to tweak these other props to your needs
 - a blog post that is not found will return a 404
 
-### builds
+### tokens
 
-This API resource is related to Vercel builds, mainly the ones for my blog website. To be able to use the functionalities related to this resource, you'll need a `VERCEL_TOKEN` set in your environment variables.
+#### POST `/tokens`
 
-#### GET `/builds`
-
-- response is the list of the previous Vercel builds as in =>
-
-  ```json
-  {
-    "msg": "1 builds fetched",
-    "data": [
-      {
-        "uid": "MASKED",
-        "name": "MASKED",
-        "url": "MASKED",
-        "created": null,
-        "state": "MASKED",
-        "type": "MASKED",
-        "creator": null,
-        "inspectorUrl": "MASKED",
-        "meta": {
-          "githubCommitAuthorName": "yactouat",
-          "githubCommitMessage": "content links open in external tab",
-          "githubCommitOrg": "yactouat",
-          "githubCommitRef": "master",
-          "githubCommitRepo": "pips_channel_personal-website_webapp",
-          "githubCommitSha": "a141c64a8852f48c58e29cb0d1d68d388500f2e8",
-          "githubDeployment": "MASKED",
-          "githubOrg": "yactouat",
-          "githubRepo": "pips_channel_personal-website_webapp",
-          "githubRepoOwnerType": "MASKED",
-          "githubCommitRepoId": "MASKED",
-          "githubRepoId": "MASKED",
-          "githubCommitAuthorLogin": "MASKED"
-        },
-        "target": "production",
-        "aliasError": null,
-        "aliasAssigned": null,
-        "isRollbackCandidate": null,
-        "createdAt": null,
-        "buildingAt": null,
-        "ready": 1674391339108
-      }
-    ]
-  }
-  ```
-
-- here, the `meta` prop is the most interesting one, it contains the GitHub commit metadata that triggered the build
-
-#### POST `/builds`
-
+- generates a JWT token for the user or a 401 if the action is not authorized
 - input payload must look like =>
 
   ```json
   {
-    "vercelToken": "my-vercel-api-token"
+    "email": "myemail@domain.com",
+    "password": "my-password",
+    "socialHandle": "my-social-handle",
+    "socialHandleType": "GitHub" // or "LinkedIn"
   }
   ```
 
-- please not that the input vercel token acts an authentication system for this endpoint for now
+- a success response looks like so =>
 
-- response is a build success response =>
+```json
+{
+  "msg": "auth token issued",
+  "data": {
+    "token": "some.jwt.token"
+  }
+}
+```
+
+### users
+
+#### POST `/users`
+
+- creates a new user in the database, e.g. sign up
+- input payload must look like =>
 
   ```json
   {
-    "msg": "new build triggered",
+    "email": "myemail@domain.com",
+    "password": "my-password",
+    "socialHandle": "my-social-handle",
+    "socialHandleType": "GitHub" // or "LinkedIn"
+  }
+  ```
+
+- response is a success response =>
+
+  ```json
+  {
+    "msg": "thanks for registering to to api.yactouat.com; you will receive a verification link by email shortly",
     "data": {
-      "uid": "MASKED",
-      "name": "MASKED",
-      "url": "MASKED",
-      "created": null,
-      "state": "MASKED",
-      "type": "MASKED",
-      "creator": null,
-      "inspectorUrl": "MASKED",
-      "meta": {
-        "githubCommitAuthorName": "yactouat",
-        "githubCommitMessage": "content links open in external tab",
-        "githubCommitOrg": "yactouat",
-        "githubCommitRef": "master",
-        "githubCommitRepo": "pips_channel_personal-website_webapp",
-        "githubCommitSha": "a141c64a8852f48c58e29cb0d1d68d388500f2e8",
-        "githubDeployment": "MASKED",
-        "githubOrg": "yactouat",
-        "githubRepo": "pips_channel_personal-website_webapp",
-        "githubRepoOwnerType": "MASKED",
-        "githubCommitRepoId": "MASKED",
-        "githubRepoId": "MASKED",
-        "githubCommitAuthorLogin": "MASKED"
-      },
-      "target": "production",
-      "aliasError": null,
-      "aliasAssigned": null,
-      "isRollbackCandidate": null,
-      "createdAt": null,
-      "buildingAt": null,
-      "ready": 1674391339108
+      "token": "some.jwt.token",
+      "user": {
+        "email": "myemail@domain.com",
+        "password": null,
+        "socialHandle": "my-social-handle",
+        "socialHandleType": "GitHub",
+        "verified": false
+      }
     }
   }
   ```
 
-- this endpoint triggers a Vercel build with no build cache, useful when you want to re run static site generation to create/update blog pages
-- possible error codes are =>
-  - 401
-  - 500
+- behind the scenes, the API just sends a Pub/Sub message to a topic that should be listened to by the PIPS system, specifically a mailer service that will send a verification email to the user
+
+#### PUT `/users`
+
+- updates a new user as `verified` in the database, after he/she has signed up and clicked on the verification link in the email sent to him/her
+- input payload must look like =>
+
+  ```json
+  {
+    "email": "myemail@domain.com",
+    "verificationToken": "special-token"
+  }
+  ```
+
+- response is a success response =>
+
+  ```json
+  {
+    "msg": "thanks for registering to to api.yactouat.com; you will receive a verification link by email shortly",
+    "data": {
+      "token": "some.jwt.token",
+      "user": {
+        "email": "myemail@domain.com",
+        "password": null,
+        "socialHandle": "my-social-handle",
+        "socialHandleType": "GitHub",
+        "verified": true
+      }
+    }
+  }
+  ```
+
+- the token used to verify the user is a one-time-use token, so it's status to `expired` in the database after the user has used it
 
 ## Contribution guidelines
 

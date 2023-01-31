@@ -1,21 +1,25 @@
 {
   "name": "pips_channel_personal-website_api",
-  "version": "2.0.0",
+  "version": "3.0.1",
   "description": "api.yactouat.com",
   "main": "./dist/api.js",
   "scripts": {
     "build": "tsc",
-    "dev": "NODE_ENV=development ts-node ./src/api.ts",
-    "start": "node ./dist/api.js",
+    "dev": "npm run migrate-db-dev && NODE_ENV=development ts-node ./src/api.ts",
+    "migrate-db": "NODE_ENV=production node ./dist/database/migrate-db.js",
+    "migrate-db-dev": "NODE_ENV=development ts-node ./src/database/migrate-db.ts",
+    "start": "npm run migrate-db && NODE_ENV=production node ./dist/api.js",
     "test": "jest --clearCache && jest"
   },
   "keywords": [],
   "author": "Yacine Touati <yacine.touati.pro@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
     "@types/express": "^4.17.15",
     "@types/jest": "^29.2.5",
-    "@types/node-fetch": "^2.6.2",
+    "@types/jsonwebtoken": "^9.0.1",
+    "@types/pg": "^8.6.6",
     "dotenv": "^16.0.3",
     "jest": "^29.3.1",
     "ts-jest": "^29.0.3",
@@ -23,10 +27,14 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@google-cloud/pubsub": "^3.3.0",
     "@google-cloud/storage": "^6.9.0",
+    "bcrypt": "^5.1.0",
     "express": "^4.18.2",
+    "express-validator": "^6.14.3",
     "gray-matter": "^4.0.3",
-    "node-fetch": "^2.6.8",
-    "pips_resources_definitions": "^2.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "pg": "^8.8.0",
+    "pips_resources_definitions": "^7.1.0"
   }
 }
