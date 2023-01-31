@@ -171,6 +171,63 @@ API.post(
   }
 );
 
+API.put(
+  "/users/:email",
+  body("email").isEmail(),
+  body("verificationToken").isString(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidatorErrorRes(res, errors);
+    } else {
+      const pgClient = getPgClient();
+      try {
+        await pgClient.connect();
+        // verify user
+        const selectVerifTokenQueryRes = await pgClient.query(
+          `UPDATE users 
+            SET verified = TRUE 
+            WHERE id = (
+              SELECT id 
+              FROM users u 
+              INNER JOIN tokens_user tu ON u.id = tu.user_id
+              INNER JOIN tokens t ON tu.token_id = t.id
+              WHERE u.email = $1
+              AND t.token = $2
+              AND t.expired = 0
+            ) 
+            RETURNING *`,
+          [req.body.email, req.body.verificationToken]
+        );
+        console.log(
+          "VERIFYING USER QUERY RESULT",
+          selectVerifTokenQueryRes.rows
+        );
+        // TODO verify if can expire token
+        const expireTokenQueryRes = await pgClient.query(
+          `
+          UPDATE tokens
+          SET expired = 1
+          WHERE id = (
+            SELECT id
+            FROM tokens t
+            WHERE t.token = $1
+          ) RETURNING *
+        `,
+          [req.body.verificationToken]
+        );
+        console.log("EXPIRING TOKEN QUERY RESULT", expireTokenQueryRes.rows);
+        const user = await getUserFromDb(req.body.email, pgClient);
+        sendResponse(res, 201, "user updated", user);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        await pgClient.end();
+      }
+    }
+  }
+);
+
 const server = API.listen(8080, () => {
   console.log("API server running on port 8080");
 });
