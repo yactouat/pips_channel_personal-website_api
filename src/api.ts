@@ -5,7 +5,6 @@ import {
   getPgClient,
   getUserFromDb,
 } from "pips_resources_definitions/dist/behaviors";
-import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
@@ -14,6 +13,7 @@ import sendResponse from "./responses/send-response";
 import validateSocialHandleType from "./resources/users/validate-social-handle-type";
 import sendValidatorErrorRes from "./responses/send-validator-error-res";
 import getPubSubClient from "./get-pubsub-client";
+import signToken from "./resources/tokens/sign-token";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -55,8 +55,29 @@ API.get("/", async (req, res) => {
   );
 });
 
+API.get("/blog-posts", async (req, res) => {
+  const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();
+  sendResponse(
+    res,
+    200,
+    `${blogPostsMetadata.length} blog posts fetched`,
+    blogPostsMetadata
+  );
+});
+
+API.get("/blog-posts/:slug", async (req, res) => {
+  const slug = req.params.slug;
+  try {
+    const blogPostdata = await fetchBlogPostDataFromGCPBucket(slug);
+    sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
+  } catch (error) {
+    console.error(error);
+    sendResponse(res, 404, `${slug} blog post data not found`);
+  }
+});
+
 API.post(
-  "/auth-tokens",
+  "/tokens",
   body("email").isEmail(),
   body("password").notEmpty().isString(),
   async (req, res) => {
@@ -78,12 +99,10 @@ API.post(
       try {
         authed = await bcrypt.compare(inputPassword, user.password as string);
         token = authed
-          ? await jwt.sign(
-              { email: user.email },
-              process.env.JWT_SECRET as string
-            )
+          ? await signToken({
+              email: user.email,
+            })
           : "";
-        user.password = null;
       } catch (error) {
         console.error(error);
       }
@@ -96,27 +115,6 @@ API.post(
     }
   }
 );
-
-API.get("/blog-posts", async (req, res) => {
-  const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();
-  sendResponse(
-    res,
-    200,
-    `${blogPostsMetadata.length} blog posts fetched`,
-    blogPostsMetadata
-  );
-});
-
-API.get("/blog-posts/:slug", async (req, res) => {
-  const slug = req.params.slug;
-  try {
-    const blogPostdata = await fetchBlogPostDataFromGCPBucket(slug);
-    sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
-  } catch (error) {
-    console.error(error);
-    sendResponse(res, 404, `${slug} blog post data not found`);
-  }
-});
 
 API.post(
   "/users",
@@ -159,7 +157,14 @@ API.post(
               env: process.env.NODE_ENV as string,
             },
           });
-        sendResponse(res, 201, "user created", user);
+        const authToken = await signToken({
+          email: user.email,
+        });
+        user.password = null;
+        sendResponse(res, 201, "user created", {
+          token: authToken,
+          user: user,
+        });
       } catch (error) {
         // TODO better observability here
         console.error(error);
@@ -218,7 +223,14 @@ API.put(
         );
         console.log("EXPIRING TOKEN QUERY RESULT", expireTokenQueryRes.rows);
         const user = await getUserFromDb(req.body.email, pgClient);
-        sendResponse(res, 201, "user updated", user);
+        const authToken = await signToken({
+          email: user.email,
+        });
+        user.password = null;
+        sendResponse(res, 201, "user verified", {
+          token: authToken,
+          user: user,
+        });
       } catch (error) {
         console.error(error);
       } finally {
