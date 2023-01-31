@@ -1,13 +1,13 @@
 {
   "name": "pips_channel_personal-website_api",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "api.yactouat.com",
   "main": "./dist/api.js",
   "scripts": {
     "build": "tsc",
     "dev": "npm run migrate-db-dev && NODE_ENV=development ts-node ./src/api.ts",
-    "migrate-db": "NODE_ENV=production node ./dist/database/migrate-db.js",
-    "migrate-db-dev": "NODE_ENV=development ts-node ./src/database/migrate-db.ts",
+    "migrate-db": "NODE_ENV=production node ./dist/migrate-db.js",
+    "migrate-db-dev": "NODE_ENV=development ts-node ./src/migrate-db.ts",
     "start": "npm run migrate-db && NODE_ENV=production node ./dist/api.js",
     "test": "jest --clearCache && jest"
   },
