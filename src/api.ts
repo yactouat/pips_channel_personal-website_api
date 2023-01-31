@@ -195,7 +195,7 @@ API.put(
             WHERE id = (
               SELECT id 
               FROM users u 
-              INNER JOIN tokens_user tu ON u.id = tu.user_id
+              INNER JOIN tokens_users tu ON u.id = tu.user_id
               INNER JOIN tokens t ON tu.token_id = t.id
               WHERE u.email = $1
               AND t.token = $2
@@ -227,6 +227,7 @@ API.put(
           email: user.email,
         });
         user.password = null;
+        // TODO unhappy path response
         sendResponse(res, 201, "user verified", {
           token: authToken,
           user: user,

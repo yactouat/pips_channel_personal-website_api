@@ -149,6 +149,22 @@ You will need to create a topic to send a notification to when a new user is cre
 
 ## API resources
 
+home route at `/` should return =>
+
+```json
+{
+  "msg": "api.yactouat.com is available",
+  "data": {
+    "services": [
+      {
+        "service": "database",
+        "status": "up"
+      }
+    ]
+  }
+}
+```
+
 ### blog posts
 
 #### GET `/blog-posts`
