@@ -88,13 +88,12 @@ API.post(
       let token = "";
       let authed = false;
       const inputPassword = req.body.password;
-      const pgClient = getPgClient();
       try {
       } catch (error) {
         sendResponse(res, 500, "server error");
         return;
       }
-      const user = await getUserFromDb(req.body.email, pgClient);
+      const user = await getUserFromDb(req.body.email, getPgClient());
       try {
         authed = await bcrypt.compare(inputPassword, user.password as string);
         token = authed
@@ -127,12 +126,12 @@ API.post(
     if (!errors.isEmpty()) {
       sendValidatorErrorRes(res, errors);
     } else {
-      const pgClient = getPgClient();
       try {
-        await pgClient.connect();
+        const pgClient1 = getPgClient();
+        await pgClient1.connect();
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(req.body.password, salt);
-        const insertUserQueryRes = await pgClient.query(
+        const insertUserQueryRes = await pgClient1.query(
           "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
           [
             req.body.email,
@@ -142,7 +141,7 @@ API.post(
           ]
         );
         const user = insertUserQueryRes.rows[0] as UserResource;
-        await pgClient.end();
+        await pgClient1.end();
         user.password = null;
         // send PubSub message for user created event containing user email
         // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
@@ -182,12 +181,12 @@ API.put(
     if (!errors.isEmpty()) {
       sendValidatorErrorRes(res, errors);
     } else {
-      const pgClient = getPgClient();
       let userHasBeenVerified = false;
       try {
-        await pgClient.connect();
+        const pgClient1 = getPgClient();
+        await pgClient1.connect();
         // verify user
-        const selectVerifTokenQueryRes = await pgClient.query(
+        const selectVerifTokenQueryRes = await pgClient1.query(
           `UPDATE users uu
             SET verified = TRUE 
             WHERE uu.id = (
@@ -203,11 +202,12 @@ API.put(
           [req.body.email, req.body.verificationToken]
         );
         userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
-        await pgClient.end();
+        await pgClient1.end();
         // expire token
         if (userHasBeenVerified) {
-          await pgClient.connect();
-          const expireTokenQueryRes = await pgClient.query(
+          const pgClient2 = getPgClient();
+          await pgClient2.connect();
+          const expireTokenQueryRes = await pgClient2.query(
             `
             UPDATE tokens tu
             SET expired = 1
@@ -220,7 +220,7 @@ API.put(
             [req.body.verificationToken]
           );
           userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
-          await pgClient.end();
+          await pgClient2.end();
         }
       } catch (error) {
         console.error(error);
@@ -229,7 +229,7 @@ API.put(
       if (!userHasBeenVerified) {
         sendResponse(res, 401, "user not verified");
       } else {
-        const user = await getUserFromDb(req.body.email, pgClient);
+        const user = await getUserFromDb(req.body.email, getPgClient());
         const authToken = await signToken({
           email: user.email,
         });
