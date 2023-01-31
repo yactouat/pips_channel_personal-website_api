@@ -4,14 +4,14 @@ import express from "express";
 import {
   getPgClient,
   getUserFromDb,
+  sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
-import sendResponse from "./responses/send-response";
 import validateSocialHandleType from "./resources/users/validate-social-handle-type";
-import sendValidatorErrorRes from "./responses/send-validator-error-res";
+import sendValidatorErrorRes from "./send-validator-error-res";
 import getPubSubClient from "./get-pubsub-client";
 import signToken from "./resources/tokens/sign-token";
 
@@ -38,7 +38,7 @@ API.get("/", async (req, res) => {
   } finally {
     await pgClient.end();
   }
-  sendResponse(
+  sendJsonResponse(
     res,
     200,
     dbIsUp
@@ -57,7 +57,7 @@ API.get("/", async (req, res) => {
 
 API.get("/blog-posts", async (req, res) => {
   const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();
-  sendResponse(
+  sendJsonResponse(
     res,
     200,
     `${blogPostsMetadata.length} blog posts fetched`,
@@ -69,10 +69,10 @@ API.get("/blog-posts/:slug", async (req, res) => {
   const slug = req.params.slug;
   try {
     const blogPostdata = await fetchBlogPostDataFromGCPBucket(slug);
-    sendResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
+    sendJsonResponse(res, 200, `${slug} blog post data fetched`, blogPostdata);
   } catch (error) {
     console.error(error);
-    sendResponse(res, 404, `${slug} blog post data not found`);
+    sendJsonResponse(res, 404, `${slug} blog post data not found`);
   }
 });
 
@@ -90,7 +90,7 @@ API.post(
       const inputPassword = req.body.password;
       try {
       } catch (error) {
-        sendResponse(res, 500, "server error");
+        sendJsonResponse(res, 500, "server error");
         return;
       }
       const user = await getUserFromDb(req.body.email, getPgClient());
@@ -105,9 +105,9 @@ API.post(
         console.error(error);
       }
       if (authed == false) {
-        sendResponse(res, 401, "invalid credentials");
+        sendJsonResponse(res, 401, "invalid credentials");
       } else {
-        sendResponse(res, 200, "auth token issued", { token });
+        sendJsonResponse(res, 200, "auth token issued", { token });
       }
     }
   }
@@ -159,13 +159,13 @@ API.post(
           email: user.email,
         });
         user.password = null;
-        sendResponse(res, 201, "user created", {
+        sendJsonResponse(res, 201, "user created", {
           token: authToken,
           user: user,
         });
       } catch (error) {
         console.error(error);
-        sendResponse(res, 500, "user creation failed");
+        sendJsonResponse(res, 500, "user creation failed");
       } finally {
       }
     }
@@ -227,14 +227,14 @@ API.put(
         userHasBeenVerified = false;
       }
       if (!userHasBeenVerified) {
-        sendResponse(res, 401, "user not verified");
+        sendJsonResponse(res, 401, "user not verified");
       } else {
         const user = await getUserFromDb(req.body.email, getPgClient());
         const authToken = await signToken({
           email: user.email,
         });
         user.password = null;
-        sendResponse(res, 201, "user verified", {
+        sendJsonResponse(res, 201, "user verified", {
           token: authToken,
           user: user,
         });
