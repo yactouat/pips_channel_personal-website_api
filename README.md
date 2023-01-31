@@ -264,7 +264,8 @@ home route at `/` should return =>
         "email": "myemail@domain.com",
         "password": null,
         "socialHandle": "my-social-handle",
-        "socialHandleType": "GitHub"
+        "socialHandleType": "GitHub",
+        "verified": false
       }
     }
   }
@@ -295,7 +296,8 @@ home route at `/` should return =>
         "email": "myemail@domain.com",
         "password": null,
         "socialHandle": "my-social-handle",
-        "socialHandleType": "GitHub"
+        "socialHandleType": "GitHub",
+        "verified": true
       }
     }
   }

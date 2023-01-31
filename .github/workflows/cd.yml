@@ -1,10 +1,12 @@
 name: CD
 
 on:
-  push:
-    branches:
-      - feature/post-users-and-verify-them
-  # this action will only run if you create a release
+  # continuous deployment
+  # push:
+  #   branches:
+  #     - feature/post-users-and-verify-them
+
+  # continuous delivery
   release:
     types: [created]
 

@@ -186,6 +186,7 @@ API.put(
       sendValidatorErrorRes(res, errors);
     } else {
       const pgClient = getPgClient();
+      let userHasBeenVerified = false;
       try {
         await pgClient.connect();
         // verify user
@@ -204,38 +205,41 @@ API.put(
             RETURNING *`,
           [req.body.email, req.body.verificationToken]
         );
-        console.log(
-          "VERIFYING USER QUERY RESULT",
-          selectVerifTokenQueryRes.rows
-        );
-        // TODO verify if can expire token
-        const expireTokenQueryRes = await pgClient.query(
-          `
-          UPDATE tokens tu
-          SET expired = 1
-          WHERE tu.id = (
-            SELECT t.id
-            FROM tokens t
-            WHERE t.token = $1
-          ) RETURNING *
-        `,
-          [req.body.verificationToken]
-        );
-        console.log("EXPIRING TOKEN QUERY RESULT", expireTokenQueryRes.rows);
+        userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
+        // expire token
+        if (userHasBeenVerified) {
+          const expireTokenQueryRes = await pgClient.query(
+            `
+            UPDATE tokens tu
+            SET expired = 1
+            WHERE tu.id = (
+              SELECT t.id
+              FROM tokens t
+              WHERE t.token = $1
+            ) RETURNING *
+          `,
+            [req.body.verificationToken]
+          );
+          userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
+        }
+      } catch (error) {
+        console.error(error);
+        userHasBeenVerified = false;
+      } finally {
+        await pgClient.end();
+      }
+      if (!userHasBeenVerified) {
+        sendResponse(res, 401, "user not verified");
+      } else {
         const user = await getUserFromDb(req.body.email, pgClient);
         const authToken = await signToken({
           email: user.email,
         });
         user.password = null;
-        // TODO unhappy path response
         sendResponse(res, 201, "user verified", {
           token: authToken,
           user: user,
         });
-      } catch (error) {
-        console.error(error);
-      } finally {
-        await pgClient.end();
       }
     }
   }
