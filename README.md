@@ -11,7 +11,7 @@
       - [Cloud Run Deployer](#cloud-run-deployer)
     - [the SDK](#the-sdk)
   - [nice to have](#nice-to-have)
-  - [how to run and setup](#how-to-run-and-setup)
+  - [how to run and setup locally](#how-to-run-and-setup-locally)
   - [CI/CD](#cicd)
   - [secrets and env vars](#secrets-and-env-vars)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
@@ -26,7 +26,8 @@
       - [POST /tokens](#post-tokens)
     - [users](#users)
       - [POST /users](#post-users)
-      - [PUT /users](#put-users)
+      - [GET /users/:id](#get-usersid)
+      - [PUT /users/:id](#put-usersid)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
@@ -82,14 +83,15 @@ If you're running this in full local mode, you'll need to install the GCP SDK; I
 
 - you can provision a PostgreSQL database if you plan to deploy the solution; I'm personnaly using Supabase, if you do too you'll need to download the server root certificate and store it in the repo as `./creds/supabase-root.crt` (git ignored)
 
-## how to run and setup
+## how to run and setup locally
 
 - clone the repo
 - run `npm install` to install the dependencies
 - run `npm run build` to build the project
-- run `npm run start` to start the server on port 8080
-- `docker compose up` will start a local postgres instance and a `pgAdmin` instance
-- to run the migrations, run `npm run migrate-db-dev`; otherwise they are run by default with `npm run dev` (and also `start`)
+- run `npm run dev` to start the server on port 8080
+- `docker compose up -d` will start a local postgres instance and a `pgAdmin` instance
+- migrations are run by default with `npm run dev` (and also `start`)
+- to run the migrations afterwards, run `npm run migrate-db-dev`
 
 ## CI/CD
 
@@ -273,7 +275,26 @@ home route at `/` should return =>
 
 - behind the scenes, the API just sends a Pub/Sub message to a topic that should be listened to by the PIPS system, specifically a mailer service that will send a verification email to the user
 
-#### PUT `/users`
+#### GET `/users/:id`
+
+- returns the user data for the given id
+- requires a valid JWT token in the `Authorization` header of type `Bearer`
+- response is a success response =>
+
+  ```json
+  {
+    "msg": "user fetched",
+    "data": {
+      "email": "myemail@domain.com",
+      "password": null,
+      "socialHandle": "my-social-handle",
+      "socialHandleType": "GitHub",
+      "verified": false
+    }
+  }
+  ```
+
+#### PUT `/users/:id`
 
 - updates a new user as `verified` in the database, after he/she has signed up and clicked on the verification link in the email sent to him/her
 - input payload must look like =>
