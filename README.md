@@ -263,6 +263,7 @@ home route at `/` should return =>
     "data": {
       "token": "some.jwt.token",
       "user": {
+        "id": "some-id",
         "email": "myemail@domain.com",
         "password": null,
         "socialHandle": "my-social-handle",
@@ -285,6 +286,7 @@ home route at `/` should return =>
   {
     "msg": "user fetched",
     "data": {
+      "id": "some-id",
       "email": "myemail@domain.com",
       "password": null,
       "socialHandle": "my-social-handle",
@@ -314,6 +316,7 @@ home route at `/` should return =>
     "data": {
       "token": "some.jwt.token",
       "user": {
+        "id": "some-id",
         "email": "myemail@domain.com",
         "password": null,
         "socialHandle": "my-social-handle",
