@@ -3,17 +3,20 @@ import { body, validationResult } from "express-validator";
 import express from "express";
 import {
   getPgClient,
-  getUserFromDb,
+  getUserFromDbWithEmail,
+  getUserFromDbWithId,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
-import validateSocialHandleType from "./resources/users/validate-social-handle-type";
-import sendValidatorErrorRes from "./send-validator-error-res";
+import validateSocialHandleType from "./validation/validate-social-handle-type";
+import sendValidationErrorRes from "./validation/send-validator-error-res";
 import getPubSubClient from "./get-pubsub-client";
-import signToken from "./resources/tokens/sign-token";
+import signJwtToken from "./resources/tokens/sign-jwt-token";
+import getUserIdFromParams from "./validation/validate-user-id";
+import validatesJwtTokenMiddleware from "./validation/validates-jwt-token-middleware";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -83,32 +86,34 @@ API.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      sendValidatorErrorRes(res, errors);
+      sendValidationErrorRes(res, errors);
+      return;
+    }
+    let token = "";
+    let authed = false;
+    const inputPassword = req.body.password;
+    const user = await getUserFromDbWithEmail(req.body.email, getPgClient());
+    if (user == null) {
+      sendJsonResponse(res, 404, "user not found");
+      return;
+    }
+    try {
+      authed = await bcrypt.compare(inputPassword, user.password as string);
+      token = authed
+        ? await signJwtToken({
+            email: user.email,
+            id: user.id as number,
+          })
+        : "";
+    } catch (error) {
+      console.error(error);
+      sendJsonResponse(res, 500, "internal server error");
+      return;
+    }
+    if (authed == false) {
+      sendJsonResponse(res, 401, "invalid credentials");
     } else {
-      let token = "";
-      let authed = false;
-      const inputPassword = req.body.password;
-      try {
-      } catch (error) {
-        sendJsonResponse(res, 500, "server error");
-        return;
-      }
-      const user = await getUserFromDb(req.body.email, getPgClient());
-      try {
-        authed = await bcrypt.compare(inputPassword, user.password as string);
-        token = authed
-          ? await signToken({
-              email: user.email,
-            })
-          : "";
-      } catch (error) {
-        console.error(error);
-      }
-      if (authed == false) {
-        sendJsonResponse(res, 401, "invalid credentials");
-      } else {
-        sendJsonResponse(res, 200, "auth token issued", { token });
-      }
+      sendJsonResponse(res, 200, "auth token issued", { token });
     }
   }
 );
@@ -124,7 +129,7 @@ API.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      sendValidatorErrorRes(res, errors);
+      sendValidationErrorRes(res, errors);
     } else {
       try {
         const pgClient1 = getPgClient();
@@ -155,10 +160,10 @@ API.post(
               env: process.env.NODE_ENV as string,
             },
           });
-        const authToken = await signToken({
+        const authToken = await signJwtToken({
+          id: user.id as number,
           email: user.email,
         });
-        user.password = null;
         sendJsonResponse(res, 201, "user created", {
           token: authToken,
           user: user,
@@ -172,22 +177,51 @@ API.post(
   }
 );
 
+API.get("/users/:id", validatesJwtTokenMiddleware, async (req, res) => {
+  const userId = getUserIdFromParams(req);
+  if (userId == null) {
+    sendValidationErrorRes(res, undefined, "user id is not valid");
+    return;
+  }
+  const authedUser = JSON.parse(req.params.authedUser);
+  if (authedUser.id !== userId) {
+    sendJsonResponse(res, 403, "forbidden");
+    return;
+  }
+  const user = await getUserFromDbWithId(userId, getPgClient());
+  if (user == null) {
+    sendJsonResponse(res, 404, "user not found");
+    return;
+  }
+  if (authedUser.email !== user.email) {
+    sendJsonResponse(res, 403, "forbidden");
+    return;
+  }
+  sendJsonResponse(res, 200, "user fetched", user);
+});
+
 API.put(
-  "/users/:email",
+  "/users/:id",
   body("email").isEmail(),
   body("verificationToken").isString(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      sendValidatorErrorRes(res, errors);
-    } else {
-      let userHasBeenVerified = false;
-      try {
-        const pgClient1 = getPgClient();
-        await pgClient1.connect();
-        // verify user
-        const selectVerifTokenQueryRes = await pgClient1.query(
-          `UPDATE users uu
+      sendValidationErrorRes(res, errors);
+      return;
+    }
+    const userId = getUserIdFromParams(req);
+    if (userId == null) {
+      sendValidationErrorRes(res, undefined, "user id not valid");
+      return;
+    }
+    let userHasBeenVerified = false;
+    try {
+      const pgClient1 = getPgClient();
+      await pgClient1.connect();
+      // verify user
+      const selectVerifTokenQueryRes = await pgClient1.query(
+        `UPDATE users uu
             SET verified = TRUE 
             WHERE uu.id = (
               SELECT u.id 
@@ -195,51 +229,54 @@ API.put(
               INNER JOIN tokens_users tu ON u.id = tu.user_id
               INNER JOIN tokens t ON tu.token_id = t.id
               WHERE u.email = $1
-              AND t.token = $2
+              AND u.id = $2
+              AND t.token = $3
               AND t.expired = 0
             ) 
             RETURNING *`,
-          [req.body.email, req.body.verificationToken]
-        );
-        userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
-        await pgClient1.end();
-        // expire token
-        if (userHasBeenVerified) {
-          const pgClient2 = getPgClient();
-          await pgClient2.connect();
-          const expireTokenQueryRes = await pgClient2.query(
-            `
-            UPDATE tokens tu
-            SET expired = 1
+        [req.body.email, userId, req.body.verificationToken]
+      );
+      userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
+      await pgClient1.end();
+      // expire token
+      if (userHasBeenVerified) {
+        const pgClient2 = getPgClient();
+        await pgClient2.connect();
+        const expireTokenQueryRes = await pgClient2.query(
+          `UPDATE tokens tu 
+            SET expired = 1 
             WHERE tu.id = (
               SELECT t.id
               FROM tokens t
               WHERE t.token = $1
             ) RETURNING *
           `,
-            [req.body.verificationToken]
-          );
-          userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
-          await pgClient2.end();
-        }
-      } catch (error) {
-        console.error(error);
-        userHasBeenVerified = false;
+          [req.body.verificationToken]
+        );
+        userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
+        await pgClient2.end();
       }
-      if (!userHasBeenVerified) {
-        sendJsonResponse(res, 401, "user not verified");
-      } else {
-        const user = await getUserFromDb(req.body.email, getPgClient());
-        const authToken = await signToken({
-          email: user.email,
-        });
-        user.password = null;
-        sendJsonResponse(res, 201, "user verified", {
-          token: authToken,
-          user: user,
-        });
-      }
+    } catch (error) {
+      console.error(error);
     }
+    if (!userHasBeenVerified) {
+      // meaning something went wrong with user verification
+      sendJsonResponse(res, 401, "unauthorized");
+      return;
+    }
+    const user = await getUserFromDbWithEmail(req.body.email, getPgClient());
+    if (user == null) {
+      sendJsonResponse(res, 422, "something went wrong");
+      return;
+    }
+    const authToken = await signJwtToken({
+      id: user.id as number,
+      email: user.email,
+    });
+    sendJsonResponse(res, 201, "user updated", {
+      token: authToken,
+      user: user,
+    });
   }
 );
 
