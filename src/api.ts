@@ -94,7 +94,11 @@ API.post(
     let token = "";
     let authed = false;
     const inputPassword = req.body.password;
-    const user = await getUserFromDbWithEmail(req.body.email, getPgClient());
+    const user = await getUserFromDbWithEmail(
+      req.body.email,
+      getPgClient(),
+      false
+    );
     if (user == null) {
       sendJsonResponse(res, 404, "user not found");
       return;
