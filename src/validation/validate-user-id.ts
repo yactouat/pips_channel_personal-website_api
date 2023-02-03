@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { parseUserId } from "pips_resources_definitions/dist/behaviors";
 
 const getUserIdFromParams = (
   req: Request<
@@ -10,10 +11,7 @@ const getUserIdFromParams = (
   >
 ): number | null => {
   const userId = req.params?.id ?? "";
-  if (/^\d+$/.test(userId)) {
-    return parseInt(userId);
-  }
-  return null;
+  return parseUserId(userId);
 };
 
 export default getUserIdFromParams;

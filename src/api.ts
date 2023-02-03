@@ -11,12 +11,12 @@ import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
-import validateSocialHandleType from "./validation/validate-social-handle-type";
-import sendValidationErrorRes from "./validation/send-validator-error-res";
 import getPubSubClient from "./get-pubsub-client";
-import signJwtToken from "./resources/tokens/sign-jwt-token";
 import getUserIdFromParams from "./validation/validate-user-id";
+import sendValidationErrorRes from "./validation/send-validator-error-res";
+import signJwtToken from "./resources/tokens/sign-jwt-token";
 import validatesJwtTokenMiddleware from "./validation/validates-jwt-token-middleware";
+import validateSocialHandleType from "./validation/validate-social-handle-type";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {

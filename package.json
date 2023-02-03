@@ -1,6 +1,6 @@
 {
   "name": "pips_channel_personal-website_api",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "api.yactouat.com",
   "main": "./dist/api.js",
   "scripts": {
@@ -35,6 +35,6 @@
     "gray-matter": "^4.0.3",
     "jsonwebtoken": "^9.0.0",
     "pg": "^8.8.0",
-    "pips_resources_definitions": "^9.0.1"
+    "pips_resources_definitions": "^9.1.0"
   }
 }
