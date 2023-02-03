@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { body, validationResult } from "express-validator";
+import cors from "cors";
 import express from "express";
 import {
   getPgClient,
@@ -24,6 +25,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 const API = express();
+API.use(cors());
 API.use(express.json());
 
 API.get("/", async (req, res) => {
