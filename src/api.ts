@@ -209,13 +209,14 @@ API.get("/users/:id", validatesJwtTokenMiddleware, async (req, res) => {
 API.put(
   "/users/:id",
   body("email").isEmail(),
-  body("verificationToken").isString(),
+  body("verifToken").isString(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       sendValidationErrorRes(res, errors);
       return;
     }
+    const verifToken = req.body.verifToken;
     const userId = getUserIdFromParams(req);
     if (userId == null) {
       sendValidationErrorRes(res, undefined, "user id not valid");
@@ -223,10 +224,10 @@ API.put(
     }
     let userHasBeenVerified = false;
     try {
-      const pgClient1 = getPgClient();
-      await pgClient1.connect();
+      const verifTokenQueryClient = getPgClient();
+      await verifTokenQueryClient.connect();
       // verify user
-      const selectVerifTokenQueryRes = await pgClient1.query(
+      const selectVerifTokenQueryRes = await verifTokenQueryClient.query(
         `UPDATE users uu
             SET verified = TRUE 
             WHERE uu.id = (
@@ -240,15 +241,15 @@ API.put(
               AND t.expired = 0
             ) 
             RETURNING *`,
-        [req.body.email, userId, req.body.verificationToken]
+        [req.body.email, userId, verifToken]
       );
       userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
-      await pgClient1.end();
+      await verifTokenQueryClient.end();
       // expire token
       if (userHasBeenVerified) {
-        const pgClient2 = getPgClient();
-        await pgClient2.connect();
-        const expireTokenQueryRes = await pgClient2.query(
+        const expireTokenQueryClient = getPgClient();
+        await expireTokenQueryClient.connect();
+        const expireTokenQueryRes = await expireTokenQueryClient.query(
           `UPDATE tokens tu 
             SET expired = 1 
             WHERE tu.id = (
@@ -257,10 +258,10 @@ API.put(
               WHERE t.token = $1
             ) RETURNING *
           `,
-          [req.body.verificationToken]
+          [verifToken]
         );
         userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
-        await pgClient2.end();
+        await expireTokenQueryClient.end();
       }
     } catch (error) {
       console.error(error);
