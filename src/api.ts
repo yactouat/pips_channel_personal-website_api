@@ -6,6 +6,7 @@ import {
   getPgClient,
   getUserFromDbWithEmail,
   getUserFromDbWithId,
+  saveUserVerifToken,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { UserResource } from "pips_resources_definitions/dist/resources";
@@ -154,10 +155,14 @@ API.post(
         const user = insertUserQueryRes.rows[0] as UserResource;
         await pgClient1.end();
         user.password = null;
-        // send PubSub message for user created event containing user email
-        // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
-        const dataBuffer = Buffer.from(user.email);
+        /**
+         * send PubSub message for user created event containing user email,
+         * this message is then consumed by decoupled services, such as the mailer,
+         * which sends a verification email to the user containing a verification token
+         */
         if (process.env.NODE_ENV != "development") {
+          // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+          const dataBuffer = Buffer.from(user.email);
           // this below returns a message id (case I need it one day)
           await getPubSubClient()
             .topic(process.env.PUBSUB_USERS_TOPIC as string)
@@ -167,6 +172,9 @@ API.post(
                 env: process.env.NODE_ENV as string,
               },
             });
+        } else {
+          // in development, we don't use PubSub, we just call the function to persist a verification token in the db directly
+          await saveUserVerifToken(user.email);
         }
         const authToken = await signJwtToken({
           id: user.id as number,
