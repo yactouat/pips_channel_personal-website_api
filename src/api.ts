@@ -157,15 +157,17 @@ API.post(
         // send PubSub message for user created event containing user email
         // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
         const dataBuffer = Buffer.from(user.email);
-        // this below returns a message id (case I need it one day)
-        await getPubSubClient()
-          .topic(process.env.PUBSUB_USERS_TOPIC as string)
-          .publishMessage({
-            data: dataBuffer,
-            attributes: {
-              env: process.env.NODE_ENV as string,
-            },
-          });
+        if (process.env.NODE_ENV != "development") {
+          // this below returns a message id (case I need it one day)
+          await getPubSubClient()
+            .topic(process.env.PUBSUB_USERS_TOPIC as string)
+            .publishMessage({
+              data: dataBuffer,
+              attributes: {
+                env: process.env.NODE_ENV as string,
+              },
+            });
+        }
         const authToken = await signJwtToken({
           id: user.id as number,
           email: user.email,
