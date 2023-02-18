@@ -9,16 +9,22 @@ import {
   saveUserVerifToken,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
+import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
+import getJwtToken from "./get-jwt-token";
 import getPubSubClient from "./get-pubsub-client";
 import getUserIdFromParams from "./validation/validate-user-id";
+import sendUpdatedUserResponse from "./resources/users/send-updated-user-response";
 import sendValidationErrorRes from "./validation/send-validator-error-res";
 import signJwtToken from "./resources/tokens/sign-jwt-token";
 import validatesJwtTokenMiddleware from "./validation/validates-jwt-token-middleware";
 import validateSocialHandleType from "./validation/validate-social-handle-type";
+import verifyUserAndSendResponse from "./resources/users/verify-user-and-send-response";
+
+const forbiddenResText = "forbidden";
 
 // ! you need to have your env correctly set up if you wish to run this API locally (see `.env.example`)
 if (process.env.NODE_ENV === "development") {
@@ -129,66 +135,76 @@ API.post(
   "/users",
   body("email").isEmail(),
   body("password").isStrongPassword(),
-  body("socialHandle").notEmpty().isString(),
-  body("socialHandleType").custom((value) => {
+  body("socialhandle").notEmpty().isString(),
+  body("socialhandletype").custom((value) => {
     return validateSocialHandleType(value);
   }),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       sendValidationErrorRes(res, errors);
-    } else {
-      try {
-        const pgClient1 = getPgClient();
-        await pgClient1.connect();
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(req.body.password, salt);
-        const insertUserQueryRes = await pgClient1.query(
-          "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
-          [
-            req.body.email,
-            hashedPassword,
-            req.body.socialHandle,
-            req.body.socialHandleType,
-          ]
-        );
-        const user = insertUserQueryRes.rows[0] as UserResource;
-        await pgClient1.end();
-        user.password = null;
-        /**
-         * send PubSub message for user created event containing user email,
-         * this message is then consumed by decoupled services, such as the mailer,
-         * which sends a verification email to the user containing a verification token
-         */
-        if (process.env.NODE_ENV != "development") {
-          // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
-          const dataBuffer = Buffer.from(user.email);
-          // this below returns a message id (case I need it one day)
-          await getPubSubClient()
-            .topic(process.env.PUBSUB_USERS_TOPIC as string)
-            .publishMessage({
-              data: dataBuffer,
-              attributes: {
-                env: process.env.NODE_ENV as string,
-              },
-            });
-        } else {
-          // in development, we don't use PubSub, we just call the function to persist a verification token in the db directly
-          await saveUserVerifToken(user.email);
-        }
-        const authToken = await signJwtToken({
-          id: user.id as number,
-          email: user.email,
-        });
-        sendJsonResponse(res, 201, "user created", {
-          token: authToken,
-          user: user,
-        });
-      } catch (error) {
-        console.error(error);
-        sendJsonResponse(res, 500, "user creation failed");
-      } finally {
+      return;
+    }
+
+    const userAlreadyExists = await getUserFromDbWithEmail(
+      req.body.email,
+      getPgClient()
+    );
+    if (userAlreadyExists != null) {
+      sendJsonResponse(res, 409, "user already exists");
+      return;
+    }
+
+    try {
+      const pgClient1 = getPgClient();
+      await pgClient1.connect();
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(req.body.password, salt);
+      const insertUserQueryRes = await pgClient1.query(
+        "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
+        [
+          req.body.email,
+          hashedPassword,
+          req.body.socialhandle,
+          req.body.socialhandletype,
+        ]
+      );
+      const user = insertUserQueryRes.rows[0] as UserResource;
+      await pgClient1.end();
+      user.password = null;
+      /**
+       * send PubSub message for user created event containing user email,
+       * this message is then consumed by decoupled services, such as the mailer,
+       * which sends a verification email to the user containing a verification token
+       */
+      if (process.env.NODE_ENV != "development") {
+        // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+        const dataBuffer = Buffer.from(user.email);
+        // this below returns a message id (case I need it one day)
+        await getPubSubClient()
+          .topic(process.env.PUBSUB_USERS_TOPIC as string)
+          .publishMessage({
+            data: dataBuffer,
+            attributes: {
+              env: process.env.NODE_ENV as string,
+            },
+          });
+      } else {
+        // in development, we don't use PubSub, we just call the function to persist a verification token in the db directly
+        await saveUserVerifToken(user.email); // /profile?veriftoken=TOKEN&email=EMAIL&userid=ID to validate on client side
       }
+      const authToken = await signJwtToken({
+        id: user.id as number,
+        email: user.email,
+      });
+      sendJsonResponse(res, 201, "user created", {
+        token: authToken,
+        user: user,
+      });
+    } catch (error) {
+      console.error(error);
+      sendJsonResponse(res, 500, "user creation failed");
+    } finally {
     }
   }
 );
@@ -201,7 +217,7 @@ API.get("/users/:id", validatesJwtTokenMiddleware, async (req, res) => {
   }
   const authedUser = JSON.parse(req.params.authedUser);
   if (authedUser.id !== userId) {
-    sendJsonResponse(res, 403, "forbidden");
+    sendJsonResponse(res, 403, forbiddenResText);
     return;
   }
   const user = await getUserFromDbWithId(userId, getPgClient());
@@ -210,7 +226,7 @@ API.get("/users/:id", validatesJwtTokenMiddleware, async (req, res) => {
     return;
   }
   if (authedUser.email !== user.email) {
-    sendJsonResponse(res, 403, "forbidden");
+    sendJsonResponse(res, 403, forbiddenResText);
     return;
   }
   sendJsonResponse(res, 200, "user fetched", user);
@@ -218,82 +234,109 @@ API.get("/users/:id", validatesJwtTokenMiddleware, async (req, res) => {
 
 API.put(
   "/users/:id",
+  validatesJwtTokenMiddleware,
   body("email").isEmail(),
-  body("verifToken").isString(),
+  body("socialhandle").isString(),
+  body("socialhandletype").custom((value) => {
+    return validateSocialHandleType(value);
+  }),
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      sendValidationErrorRes(res, errors);
-      return;
-    }
-    const verifToken = req.body.verifToken;
+    // validating the user id present in the URL
     const userId = getUserIdFromParams(req);
     if (userId == null) {
       sendValidationErrorRes(res, undefined, "user id not valid");
       return;
     }
-    let userHasBeenVerified = false;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidationErrorRes(res, errors);
+      return;
+    }
+
+    // validating id from JWT
+    const authedUser = JSON.parse(req.params.authedUser);
+    if (authedUser.id !== userId) {
+      sendJsonResponse(res, 403, forbiddenResText);
+      return;
+    }
+
+    // validating the user exists in the db
+    const existingUser = await getUserFromDbWithId(userId, getPgClient());
+    if (existingUser == null) {
+      sendJsonResponse(res, 404, "user not found");
+      return;
+    }
+
+    // user needs to be verified before proceeding
+    if (!existingUser.verified) {
+      sendJsonResponse(res, 403, "user not verified");
+      return;
+    }
+
+    let userHasBeenUpdated = false;
     try {
-      const verifTokenQueryClient = getPgClient();
-      await verifTokenQueryClient.connect();
-      // verify user
-      const selectVerifTokenQueryRes = await verifTokenQueryClient.query(
-        `UPDATE users uu
-            SET verified = TRUE 
-            WHERE uu.id = (
-              SELECT u.id 
-              FROM users u 
-              INNER JOIN tokens_users tu ON u.id = tu.user_id
-              INNER JOIN tokens t ON tu.token_id = t.id
-              WHERE u.email = $1
-              AND u.id = $2
-              AND t.token = $3
-              AND t.expired = 0
-            ) 
-            RETURNING *`,
-        [req.body.email, userId, verifToken]
+      const userUpdateQueryClient = getPgClient();
+      await userUpdateQueryClient.connect();
+      const userUpdateQueryRes = await userUpdateQueryClient.query(
+        `UPDATE users SET socialhandle = $1, socialhandletype = $2 WHERE id = $3 RETURNING *`,
+        [req.body.socialhandle, req.body.socialhandletype, userId]
       );
-      userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
-      await verifTokenQueryClient.end();
-      // expire token
-      if (userHasBeenVerified) {
-        const expireTokenQueryClient = getPgClient();
-        await expireTokenQueryClient.connect();
-        const expireTokenQueryRes = await expireTokenQueryClient.query(
-          `UPDATE tokens tu 
-            SET expired = 1 
-            WHERE tu.id = (
-              SELECT t.id
-              FROM tokens t
-              WHERE t.token = $1
-            ) RETURNING *
-          `,
-          [verifToken]
-        );
-        userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
-        await expireTokenQueryClient.end();
-      }
+      userHasBeenUpdated = userUpdateQueryRes.rowCount > 0;
+      await userUpdateQueryClient.end();
     } catch (error) {
       console.error(error);
     }
-    if (!userHasBeenVerified) {
-      // meaning something went wrong with user verification
-      sendJsonResponse(res, 401, "unauthorized");
+    if (!userHasBeenUpdated) {
+      // meaning something went wrong with user update
+      sendJsonResponse(res, 500, "something went wrong");
       return;
     }
-    const user = await getUserFromDbWithEmail(req.body.email, getPgClient());
-    if (user == null) {
-      sendJsonResponse(res, 422, "something went wrong");
+
+    await sendUpdatedUserResponse(req.body.email, res);
+  }
+);
+
+API.put(
+  "/users/:id/verify",
+  body("email").isEmail(),
+  body("veriftoken").isString(),
+  async (req, res) => {
+    // validating the user id present in the URL
+    const userId = getUserIdFromParams(req);
+    if (userId == null) {
+      sendValidationErrorRes(res, undefined, "user id not valid");
       return;
     }
-    const authToken = await signJwtToken({
-      id: user.id as number,
-      email: user.email,
-    });
-    sendJsonResponse(res, 201, "user updated", {
-      token: authToken,
-      user: user,
-    });
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      sendValidationErrorRes(res, errors);
+      return;
+    }
+
+    // validating the user exists in the db
+    const userFromDb = await getUserFromDbWithEmail(
+      req.body.email,
+      getPgClient()
+    );
+    if (userFromDb == null) {
+      sendJsonResponse(res, 404, "user not found");
+      return;
+    }
+
+    // validating that this user corresponds to the user id in the URL
+    if (userFromDb.id !== userId) {
+      sendJsonResponse(res, 403, forbiddenResText);
+      return;
+    }
+
+    await verifyUserAndSendResponse(
+      userId,
+      res,
+      req.body.email,
+      req.body.veriftoken
+    );
   }
 );
 

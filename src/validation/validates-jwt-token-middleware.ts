@@ -1,16 +1,22 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import { sendJsonResponse } from "pips_resources_definitions/dist/behaviors";
+import getJwtToken from "../get-jwt-token";
 
 const validatesAuthTokenMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
-  let validated = authHeader && authHeader.startsWith("Bearer");
-  if (authHeader && validated) {
-    const jwtToken = authHeader.slice(7);
+  let ok = false;
+  let jwtToken = "";
+  try {
+    jwtToken = getJwtToken(req.headers.authorization);
+    ok = true;
+  } catch (error) {
+    console.error(error);
+  }
+  if (ok) {
     try {
       const decodedToken = jwt.verify(
         jwtToken,
@@ -20,10 +26,10 @@ const validatesAuthTokenMiddleware = (
       next();
     } catch (error) {
       console.error(error);
-      validated = false;
+      ok = false;
     }
   }
-  if (!validated) {
+  if (!ok) {
     sendJsonResponse(res, 401, "Unauthorized");
   }
 };
