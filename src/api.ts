@@ -9,14 +9,12 @@ import {
   saveUserVerifToken,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
-import jwt from "jsonwebtoken";
 import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import fetchBlogPostDataFromGCPBucket from "./resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
 import fetchBlogPostsMetadataFromGCPBucket from "./resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
-import getJwtToken from "./get-jwt-token";
 import getPubSubClient from "./get-pubsub-client";
-import getUserIdFromParams from "./validation/validate-user-id";
+import getUserIdFromParams from "./resources/users/get-user-id-from-params";
 import sendUpdatedUserResponse from "./resources/users/send-updated-user-response";
 import sendValidationErrorRes from "./validation/send-validator-error-res";
 import signJwtToken from "./resources/tokens/sign-jwt-token";
@@ -156,11 +154,11 @@ API.post(
     }
 
     try {
-      const pgClient1 = getPgClient();
-      await pgClient1.connect();
+      const insertUserQueryClient = getPgClient();
+      await insertUserQueryClient.connect();
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(req.body.password, salt);
-      const insertUserQueryRes = await pgClient1.query(
+      const insertUserQueryRes = await insertUserQueryClient.query(
         "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
         [
           req.body.email,
@@ -170,7 +168,7 @@ API.post(
         ]
       );
       const user = insertUserQueryRes.rows[0] as UserResource;
-      await pgClient1.end();
+      await insertUserQueryClient.end();
       user.password = null;
       /**
        * send PubSub message for user created event containing user email,
