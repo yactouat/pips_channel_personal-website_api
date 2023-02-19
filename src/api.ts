@@ -185,6 +185,7 @@ API.post(
             data: dataBuffer,
             attributes: {
               env: process.env.NODE_ENV as string,
+              userTokenType: "User_Verification",
             },
           });
       } else {
@@ -282,6 +283,7 @@ API.put(
       );
       userHasBeenUpdated = userUpdateQueryRes.rowCount > 0;
       await userUpdateQueryClient.end();
+      // TODO handle updating email
     } catch (error) {
       console.error(error);
     }
