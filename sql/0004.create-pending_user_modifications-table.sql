@@ -2,6 +2,7 @@ DO
 $do$
 BEGIN
     IF to_regtype('_pending_user_modifications_field') IS NULL THEN
+        ALTER TYPE _tokentype ADD VALUE 'user_modification' AFTER 'user_verification';
         CREATE TYPE _pending_user_modifications_field AS ENUM ( 'email', 'password');
         CREATE TABLE IF NOT EXISTS pending_user_modifications (
             id SERIAL PRIMARY KEY,
