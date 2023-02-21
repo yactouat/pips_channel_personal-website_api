@@ -3,7 +3,7 @@ import {
   getPgClient,
   getUserFromDbWithEmail,
   getUserFromDbWithId,
-  saveUserVerifToken,
+  saveUserToken,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { Request, Response } from "express";
@@ -67,7 +67,7 @@ export const createUser = async (req: Request, res: Response) => {
         });
     } else {
       // in development, we don't use PubSub, we just call the function to persist a verification token in the db directly
-      await saveUserVerifToken(user.email); // /profile?veriftoken=TOKEN&email=EMAIL&userid=ID to validate on client side
+      await saveUserToken(user.email, "User_Verification"); // /profile?veriftoken=TOKEN&email=EMAIL&userid=ID to validate on client side
     }
 
     // creating the auth token
@@ -136,7 +136,7 @@ export const updateUser = async (req: Request, res: Response) => {
     return;
   }
 
-  let userHasBeenUpdated = false;
+  let userHasBeenProperlyUpdated = false;
   try {
     const userUpdateQueryClient = getPgClient();
     await userUpdateQueryClient.connect();
@@ -144,16 +144,55 @@ export const updateUser = async (req: Request, res: Response) => {
       `UPDATE users SET socialhandle = $1, socialhandletype = $2, email = $4 WHERE id = $3 RETURNING *`,
       [req.body.socialhandle, req.body.socialhandletype, userId, req.body.email]
     );
-    userHasBeenUpdated = userUpdateQueryRes.rowCount > 0;
+    userHasBeenProperlyUpdated = userUpdateQueryRes.rowCount > 0;
     await userUpdateQueryClient.end();
-    // handle updating email
-    // TODO Pub/Sub message for email change
-    // TODO dev mode, call function directly
+
+    // TODO play code below only if `userHasBeenProperlyUpdated` and if the user has changed his email or password
+    const userToken = await saveUserToken(
+      existingUser.email,
+      "User_Modification"
+    );
+
+    // TODO get pending user modification id from db and send it in the pubsub message
+
+    /**
+     *
+     * to validate a pending user modification regarding critical profile data, such as email and password,
+     *
+     * the process is in 2 steps; from the user perspective:
+     * 1. user modifies his profile
+     * 2. user receives an email with a token to validate the modification
+     *
+     * this happens by:
+     * 1. saving a pending user modification in the db
+     * 2. saving a user token in the db
+     * 3. sending a pubsub message with the user token and the pending user modification id
+     * 4. linking the user token to the pending user modification in the db with a consuming service that listens to the pubsub message
+     * 5. this consuming service sends an email to the user with the token
+     */
+    if (process.env.NODE_ENV != "development") {
+      // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+      const dataBuffer = Buffer.from(existingUser.email);
+      // this below returns a message id (case I need it one day)
+      await getPubSubClient()
+        .topic(process.env.PUBSUB_USERS_TOPIC as string)
+        .publishMessage({
+          data: dataBuffer,
+          attributes: {
+            env: process.env.NODE_ENV as string,
+            // TODO userModId: RESULT OF SAVING USER MODIFICATION ID IN DB
+            userToken: userToken,
+            userTokenType: "User_Modification",
+          },
+        });
+    }
+    // TODO else here to link the user token to the pending user modification in the db in dev mode
   } catch (error) {
     console.error(error);
+    userHasBeenProperlyUpdated = false;
   }
 
-  if (!userHasBeenUpdated) {
+  if (!userHasBeenProperlyUpdated) {
     // meaning something went wrong with user update
     sendJsonResponse(res, 500, "something went wrong");
     return;
