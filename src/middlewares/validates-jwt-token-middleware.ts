@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import { sendJsonResponse } from "pips_resources_definitions/dist/behaviors";
-import getJwtToken from "../get-jwt-token";
+import getJwtToken from "../resources/tokens/get-jwt-token";
 
-const validatesAuthTokenMiddleware = (
+const validatesJwtTokenMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
@@ -34,4 +34,4 @@ const validatesAuthTokenMiddleware = (
   }
 };
 
-export default validatesAuthTokenMiddleware;
+export default validatesJwtTokenMiddleware;
