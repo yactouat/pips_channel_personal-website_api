@@ -33,6 +33,26 @@ usersRouter.put(
   "/:id",
   validatesUserIdParamMiddleware,
   body("email").isEmail(),
+
+  /**
+   * strong password defaults to
+   * {
+   *    minLength: 8,
+   *    minLowercase: 1,
+   *    minUppercase: 1,
+   *    minNumbers: 1,
+   *    minSymbols: 1,
+   *    returnScore: false,
+   *    pointsPerUnique: 1,
+   *    pointsPerRepeat: 0.5,
+   *    pointsForContainingLower: 10,
+   *    pointsForContainingUpper: 10,
+   *    pointsForContainingNumber: 10,
+   *    pointsForContainingSymbol: 10
+   * }
+   * */
+  body("password").isStrongPassword().optional(),
+
   body("socialhandle").isString(),
   body("socialhandletype").custom((value) => {
     return validateSocialHandleType(value);
@@ -46,9 +66,10 @@ usersRouter.put(
   "/:id/verify",
   validatesUserIdParamMiddleware,
   body("email").isEmail(),
-  body("veriftoken").isString(),
+  body("modifytoken").isString().optional(),
+  body("veriftoken").isString().optional(),
   checksValidationResultMiddleware,
-  usersController.verifyUser
+  usersController.processUserToken
 );
 
 export default usersRouter;

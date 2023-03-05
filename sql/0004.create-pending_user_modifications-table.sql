@@ -10,7 +10,7 @@ BEGIN
             field _pending_user_modifications_field,
             value VARCHAR(255) NULL,
             created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-            commited_at TIMESTAMP NULL
+            committed_at TIMESTAMP NULL
         );
         -- syncing max length of email with password to allow for dynamic input in pending modifications table
         -- we allow ourselves to do that because we have no users yet

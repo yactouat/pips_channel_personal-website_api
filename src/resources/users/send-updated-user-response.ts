@@ -16,10 +16,15 @@ const sendUpdatedUserResponse = async (email: string, res: Response) => {
     id: updatedUser.id as number,
     email: updatedUser.email,
   });
-  sendJsonResponse(res, 201, "user updated", {
-    token: authToken,
-    user: updatedUser,
-  });
+  sendJsonResponse(
+    res,
+    201,
+    "user updated, some profile data modifications may require an additional confirmation",
+    {
+      token: authToken,
+      user: updatedUser,
+    }
+  );
 };
 
 export default sendUpdatedUserResponse;
