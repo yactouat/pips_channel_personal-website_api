@@ -2,7 +2,6 @@ import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import {
-  getPgClient,
   getUserFromDbWithEmail,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
@@ -19,11 +18,7 @@ export const getJWTAuthToken = async (req: Request, res: Response) => {
   let token = "";
   let authed = false;
   const inputPassword = req.body.password;
-  const user = await getUserFromDbWithEmail(
-    req.body.email,
-    getPgClient(),
-    false
-  );
+  const user = await getUserFromDbWithEmail(req.body.email, false);
   if (user == null) {
     sendJsonResponse(res, 404, "user not found");
     return;

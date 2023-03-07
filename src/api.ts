@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import {
-  getPgClient,
+  runPgQuery,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 
@@ -21,18 +21,12 @@ API.use(express.json());
 // base route
 API.get("/", async (req, res) => {
   let dbIsUp = true;
-  const pgClient = getPgClient();
   try {
-    await pgClient.connect();
-    const qRes = await pgClient.query("SELECT $1::text as message", [
-      "DB IS UP",
-    ]);
+    const qRes = await runPgQuery("SELECT $1::text as message", ["DB IS UP"]);
     console.log(qRes.rows[0].message);
   } catch (error) {
     dbIsUp = false;
     console.error(error);
-  } finally {
-    await pgClient.end();
   }
   sendJsonResponse(
     res,

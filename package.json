@@ -37,6 +37,6 @@
     "gray-matter": "^4.0.3",
     "jsonwebtoken": "^9.0.0",
     "pg": "^8.8.0",
-    "pips_resources_definitions": "^11.4.0"
+    "pips_resources_definitions": "^13.0.0"
   }
 }

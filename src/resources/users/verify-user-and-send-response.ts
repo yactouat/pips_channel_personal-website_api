@@ -1,9 +1,9 @@
 import {
-  getPgClient,
+  runPgQuery,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { Response } from "express";
-import sendUpdatedUserResponse from "./send-updated-user-response";
+import sendUserWithTokenResponse from "./send-user-with-token-response";
 
 const verifyUserAndSendResponse = async (
   userId: number,
@@ -13,10 +13,8 @@ const verifyUserAndSendResponse = async (
 ) => {
   let userHasBeenVerified = false;
   try {
-    const verifTokenQueryClient = getPgClient();
-    await verifTokenQueryClient.connect();
     // verify user
-    const selectVerifTokenQueryRes = await verifTokenQueryClient.query(
+    const selectVerifTokenQueryRes = await runPgQuery(
       `UPDATE users uu
             SET verified = TRUE 
             WHERE uu.id = (
@@ -30,15 +28,12 @@ const verifyUserAndSendResponse = async (
               AND t.expired = 0
             ) 
             RETURNING *`,
-      [email ?? "", userId, veriftoken]
+      [email ?? "", userId.toString(), veriftoken]
     );
     userHasBeenVerified = selectVerifTokenQueryRes.rows.length > 0;
-    await verifTokenQueryClient.end();
     // expire token
     if (userHasBeenVerified) {
-      const expireTokenQueryClient = getPgClient();
-      await expireTokenQueryClient.connect();
-      const expireTokenQueryRes = await expireTokenQueryClient.query(
+      const expireTokenQueryRes = await runPgQuery(
         `UPDATE tokens tu 
             SET expired = 1 
             WHERE tu.id = (
@@ -50,7 +45,6 @@ const verifyUserAndSendResponse = async (
         [veriftoken]
       );
       userHasBeenVerified = expireTokenQueryRes.rows.length > 0;
-      await expireTokenQueryClient.end();
     }
   } catch (error) {
     console.error(error);
@@ -59,7 +53,7 @@ const verifyUserAndSendResponse = async (
     // meaning something went wrong with user verification
     sendJsonResponse(res, 401, "unauthorized");
   } else {
-    await sendUpdatedUserResponse(email, res);
+    await sendUserWithTokenResponse(email, res);
   }
 };
 

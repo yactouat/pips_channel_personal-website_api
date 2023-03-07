@@ -1,14 +1,12 @@
-import bcrypt from "bcrypt";
 import {
-  getPgClient,
   getUserFromDbWithEmail,
   getUserFromDbWithId,
   linkTokenToUserMod,
+  runPgQuery,
   saveUserToken,
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { Request, Response } from "express";
-import { UserResource } from "pips_resources_definitions/dist/resources";
 
 import compareIdWithToken from "../resources/tokens/compare-id-with-token";
 import {
@@ -18,42 +16,28 @@ import {
 } from "../constants";
 import getPubSubClient from "../get-pubsub-client";
 import getUserIdFromParams from "../resources/users/get-user-id-from-params";
-import sendUpdatedUserResponse from "../resources/users/send-updated-user-response";
+import insertUserInDb from "../resources/users/insert-user-in-db";
+import sendUserWithTokenResponse from "../resources/users/send-user-with-token-response";
 import signJwtToken from "../resources/tokens/sign-jwt-token";
 import verifyUserAndSendResponse from "../resources/users/verify-user-and-send-response";
 import insertPendingUserMod from "../resources/users/insert-pending-user-mod";
 import commitPendingUserMod from "../resources/users/commit-pending-user-mod";
 
 export const createUser = async (req: Request, res: Response) => {
-  const userAlreadyExists = await getUserFromDbWithEmail(
-    req.body.email,
-    getPgClient()
-  );
+  const userAlreadyExists = await getUserFromDbWithEmail(req.body.email);
   if (userAlreadyExists != null) {
     sendJsonResponse(res, 409, "user already exists");
     return;
   }
 
   try {
-    const insertUserQueryClient = getPgClient();
-    await insertUserQueryClient.connect();
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
-    const insertUserQueryRes = await insertUserQueryClient.query(
-      "INSERT INTO users (email, password, socialhandle, socialhandletype) VALUES ($1, $2, $3, $4) RETURNING *",
-      [
-        req.body.email,
-        hashedPassword,
-        req.body.socialhandle,
-        req.body.socialhandletype,
-      ]
+    const { email, password, socialhandle, socialhandletype } = req.body;
+    const user = await insertUserInDb(
+      email,
+      password,
+      socialhandle,
+      socialhandletype
     );
-    const user = insertUserQueryRes.rows[0] as UserResource;
-    await insertUserQueryClient.end();
-
-    // nullify password before sending it back to the client
-    user.password = null;
-
     /**
      * send PubSub message for user created event containing user email,
      * this message is then consumed by decoupled services, such as the mailer,
@@ -102,7 +86,7 @@ export const getUser = async (req: Request, res: Response) => {
     sendJsonResponse(res, 403, ForbiddenResText);
     return;
   }
-  const user = await getUserFromDbWithId(userId, getPgClient());
+  const user = await getUserFromDbWithId(userId);
   if (user == null) {
     sendJsonResponse(res, 404, UserNotFoundText);
     return;
@@ -121,10 +105,7 @@ export const processUserToken = async (req: Request, res: Response) => {
   const userId = getUserIdFromParams(req);
 
   // validating the user exists in the db
-  const userFromDb = await getUserFromDbWithEmail(
-    req.body.email,
-    getPgClient()
-  );
+  const userFromDb = await getUserFromDbWithEmail(req.body.email);
   if (userFromDb == null) {
     sendJsonResponse(res, 404, UserNotFoundText);
     return;
@@ -159,7 +140,7 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 
   // validating the user exists in the db
-  const existingUser = await getUserFromDbWithId(userId, getPgClient());
+  const existingUser = await getUserFromDbWithId(userId);
   if (existingUser == null) {
     sendJsonResponse(res, 404, UserNotFoundText);
     return;
@@ -183,9 +164,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
   let userHasBeenProperlyUpdated = false;
   try {
-    const userUpdateQueryClient = getPgClient();
-    await userUpdateQueryClient.connect();
-    const userUpdateQueryRes = await userUpdateQueryClient.query(
+    const userUpdateQueryRes = await runPgQuery(
       `UPDATE users SET socialhandle = $1, socialhandletype = $2, email = $4 WHERE id = $3 RETURNING *`,
       [
         req.body.socialhandle,
@@ -195,7 +174,6 @@ export const updateUser = async (req: Request, res: Response) => {
       ]
     );
     userHasBeenProperlyUpdated = userUpdateQueryRes.rowCount > 0;
-    await userUpdateQueryClient.end();
   } catch (error) {
     console.error(error);
     sendJsonResponse(res, 500, UserUpdateFailedText);
@@ -276,5 +254,5 @@ export const updateUser = async (req: Request, res: Response) => {
     return;
   }
 
-  await sendUpdatedUserResponse(existingUser.email, res);
+  await sendUserWithTokenResponse(existingUser.email, res);
 };
