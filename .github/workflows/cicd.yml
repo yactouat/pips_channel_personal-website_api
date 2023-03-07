@@ -20,6 +20,7 @@ jobs:
       - run: npm run test
 
   build-and-deploy:
+    needs: test
     runs-on: ubuntu-latest
     name: Build app' and deploy to GCP
     environment: live
