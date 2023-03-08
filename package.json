@@ -1,6 +1,6 @@
 {
   "name": "pips_channel_personal-website_api",
-  "version": "7.0.1",
+  "version": "8.0.0",
   "description": "api.yactouat.com",
   "main": "./dist/api.js",
   "scripts": {

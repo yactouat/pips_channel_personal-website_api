@@ -33,6 +33,8 @@
 
 <!-- /TOC -->
 
+<!-- TODO update the docs -->
+
 ## what is this ?
 
 the server-side code that powers my PIPS (Portable Integrated Personal System) JSON API, feel free to use this as a template for your own API
