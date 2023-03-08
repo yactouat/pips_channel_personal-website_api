@@ -30,11 +30,13 @@ const commitPendingUserMod = async (
       // as `Date.now()` returns milliseconds, we need to divide it by 1000 to get the number of seconds since the epoch
       [new Date().toISOString(), token]
     );
+    console.log("commitUserModQueryRes: ", commitUserModQueryRes.rows);
     userModWentThrough = commitUserModQueryRes.rows.length > 0;
     const expireTokenQueryRes = await runPgQuery(
-      `UPDATE tokens SET expired = 1 WHERE token = $1`,
+      `UPDATE tokens SET expired = 1 WHERE token = $1 RETURNING *`,
       [token]
     );
+    console.log("expireTokenQueryRes: ", expireTokenQueryRes.rows);
     userModWentThrough = userModWentThrough && expireTokenQueryRes.rowCount > 0;
   } catch (error) {
     console.error(error);

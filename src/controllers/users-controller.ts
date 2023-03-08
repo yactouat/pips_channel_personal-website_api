@@ -212,7 +212,6 @@ export const updateUser = async (req: Request, res: Response) => {
         "User_Modification"
       );
       try {
-        // TODO get id of the user modification
         const mod = await insertPendingUserMod(field, req.body[field]);
         console.log("PENDING USER MODIFICATION INSERTED", mod);
         if (process.env.NODE_ENV != "development") {

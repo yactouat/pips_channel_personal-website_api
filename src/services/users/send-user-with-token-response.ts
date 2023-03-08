@@ -17,7 +17,7 @@ const sendUserWithTokenResponse = async (email: string, res: Response) => {
   });
   sendJsonResponse(
     res,
-    201,
+    200,
     "user updated, some profile data modifications may require an additional confirmation",
     {
       token: authToken,
