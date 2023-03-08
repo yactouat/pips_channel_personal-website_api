@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { sendJsonResponse } from "pips_resources_definitions/dist/behaviors";
 
-import fetchBlogPostDataFromGCPBucket from "../resources/blog-posts/fetch-blog-post-data-from-gcp-bucket";
-import fetchBlogPostsMetadataFromGCPBucket from "../resources/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
+import fetchBlogPostDataFromGCPBucket from "../services/blog-posts/fetch-blog-post-data-from-gcp-bucket";
+import fetchBlogPostsMetadataFromGCPBucket from "../services/blog-posts/fetch-blog-posts-metadata-from-gcp-bucket";
 
 export const getAllBlogPosts = async (req: Request, res: Response) => {
   const blogPostsMetadata = await fetchBlogPostsMetadataFromGCPBucket();

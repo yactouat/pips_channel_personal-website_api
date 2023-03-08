@@ -7,6 +7,7 @@ import {
 import sendUserWithTokenResponse from "./send-user-with-token-response";
 import { PendingUserModificationResource } from "pips_resources_definitions/dist/resources";
 import hashUserPassword from "./hash-user-password";
+import getPendingUserModWithToken from "./get-pending-user-mod-with-token";
 
 const commitPendingUserMod = async (
   token: string,
@@ -39,16 +40,7 @@ const commitPendingUserMod = async (
     console.error(error);
   }
   try {
-    const getUserModIdQueryRes = await runPgQuery(
-      `SELECT * 
-       FROM pending_user_modifications 
-       WHERE token_id = (SELECT id FROM tokens WHERE token = $1) 
-       AND committed_at IS NOT NULL
-       ORDER BY created_at DESC`,
-      [token]
-    );
-    const userMod = getUserModIdQueryRes
-      .rows[0] as PendingUserModificationResource;
+    const userMod = await getPendingUserModWithToken(token);
     if (userMod.field === "email") {
       await runPgQuery(
         `UPDATE users 

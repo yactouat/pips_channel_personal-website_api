@@ -7,7 +7,7 @@ const insertPendingUserMod = async (
   value: string
 ): Promise<PendingUserModificationResource> => {
   const insertUserModQueryRes = await runPgQuery(
-    "INSERT INTO pending_user_modifications (field, value) VALUES ($1, $2) RETURNING *",
+    "INSERT INTO pending_user_modifications (field, value) VALUES ($1, $2) RETURNING id, field, value, created_at, committed_at",
     [field, value]
   );
   const mod = insertUserModQueryRes.rows[0] as PendingUserModificationResource;

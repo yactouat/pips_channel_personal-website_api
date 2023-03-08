@@ -8,20 +8,20 @@ import {
 } from "pips_resources_definitions/dist/behaviors";
 import { Request, Response } from "express";
 
-import compareIdWithToken from "../resources/tokens/compare-id-with-token";
+import compareIdWithToken from "../services/tokens/compare-id-with-token";
 import {
   ForbiddenResText,
   UserNotFoundText,
   UserUpdateFailedText,
 } from "../constants";
 import getPubSubClient from "../get-pubsub-client";
-import getUserIdFromParams from "../resources/users/get-user-id-from-params";
-import insertUserInDb from "../resources/users/insert-user-in-db";
-import sendUserWithTokenResponse from "../resources/users/send-user-with-token-response";
-import signJwtToken from "../resources/tokens/sign-jwt-token";
-import verifyUserAndSendResponse from "../resources/users/verify-user-and-send-response";
-import insertPendingUserMod from "../resources/users/insert-pending-user-mod";
-import commitPendingUserMod from "../resources/users/commit-pending-user-mod";
+import getUserIdFromParams from "../services/users/get-user-id-from-params";
+import insertUserInDb from "../services/users/insert-user-in-db";
+import sendUserWithTokenResponse from "../services/users/send-user-with-token-response";
+import signJwtToken from "../services/tokens/sign-jwt-token";
+import verifyUserAndSendResponse from "../services/users/verify-user-and-send-response";
+import insertPendingUserMod from "../services/users/insert-pending-user-mod";
+import commitPendingUserMod from "../services/users/commit-pending-user-mod";
 
 export const createUser = async (req: Request, res: Response) => {
   const userAlreadyExists = await getUserFromDbWithEmail(req.body.email);
@@ -212,7 +212,9 @@ export const updateUser = async (req: Request, res: Response) => {
         "User_Modification"
       );
       try {
+        // TODO get id of the user modification
         const mod = await insertPendingUserMod(field, req.body[field]);
+        console.log("PENDING USER MODIFICATION INSERTED", mod);
         if (process.env.NODE_ENV != "development") {
           // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
           const dataBuffer = Buffer.from(existingUser.email);

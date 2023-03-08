@@ -6,7 +6,7 @@ import {
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 
-import signJwtToken from "../resources/tokens/sign-jwt-token";
+import signJwtToken from "../services/tokens/sign-jwt-token";
 import sendValidationErrorRes from "../send-validator-error-res";
 
 export const getJWTAuthToken = async (req: Request, res: Response) => {

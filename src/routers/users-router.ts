@@ -3,7 +3,7 @@ import express from "express";
 
 import * as usersController from "../controllers/users-controller";
 import validatesJwtTokenMiddleware from "../middlewares/validates-jwt-token-middleware";
-import validateSocialHandleType from "../resources/users/validate-social-handle-type";
+import validateSocialHandleType from "../services/users/validate-social-handle-type";
 import validatesUserIdParamMiddleware from "../middlewares/validates-user-id-param-middleware";
 import checksValidationResultMiddleware from "../middlewares/checks-validation-result-middleware";
 

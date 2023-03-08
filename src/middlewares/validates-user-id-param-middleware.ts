@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import getUserIdFromParams from "../resources/users/get-user-id-from-params";
+import getUserIdFromParams from "../services/users/get-user-id-from-params";
 import sendValidationErrorRes from "../send-validator-error-res";
 
 const validatesUserIdParamMiddleware = (
