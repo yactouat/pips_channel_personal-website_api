@@ -190,11 +190,10 @@ export const updateUser = async (req: Request, res: Response) => {
    * 2. user receives an email with a token to validate the modification
    *
    * this happens by:
-   * 1. saving a user token in the db of type "User_Modification"
-   * 2. saving a pending user modification payload in the db
-   * 3. sending a pubsub message with the user token and the pending user modification id
-   * 4. linking the user token to the pending user modification in the db with a consuming service that listens to the pubsub message
-   * 5. this consuming service sends an email to the user with the token
+   * 1. saving a pending user modification payload in the db
+   * 2. sending a pubsub message with the user token and the pending user modification id
+   * 3. linking the user token to the pending user modification in the db with a consuming service that listens to the pubsub message (or directly in this API in dev mode, withtout the PubSub part)
+   * 4. this consuming service sends an email to the user with the token
    */
   const fieldsThatRequireUserConfirmation = ["email", "password"];
   let updateRequiresUserConfirmation = false;
@@ -209,10 +208,6 @@ export const updateUser = async (req: Request, res: Response) => {
         req.body[field] != existingUser.password)
     ) {
       updateRequiresUserConfirmation = true;
-      const userToken = await saveUserToken(
-        existingUser.email,
-        "User_Modification"
-      );
       try {
         const mod = await insertPendingUserMod(field, req.body[field]);
         console.log("PENDING USER MODIFICATION INSERTED", mod);
@@ -227,19 +222,23 @@ export const updateUser = async (req: Request, res: Response) => {
               attributes: {
                 env: process.env.NODE_ENV as string,
                 userModId: mod.id.toString(),
-                userToken: userToken,
                 userTokenType: "User_Modification",
               },
             });
         } else {
+          // dev mode
+          const userToken = await saveUserToken(
+            existingUser.email,
+            "User_Modification"
+          );
           // link the user token to the pending user modification directly in db in dev mode
           userHasBeenProperlyUpdated = await linkTokenToUserMod(
             userToken,
             mod.id
           );
+          userHasBeenProperlyUpdated =
+            userHasBeenProperlyUpdated && userToken != "";
         }
-        userHasBeenProperlyUpdated =
-          userHasBeenProperlyUpdated && userToken != "";
       } catch (error) {
         console.error(error);
         sendJsonResponse(res, 500, UserUpdateFailedText);
