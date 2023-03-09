@@ -17,9 +17,9 @@ import {
 import getPubSubClient from "../get-pubsub-client";
 import getUserIdFromParams from "../services/users/get-user-id-from-params";
 import insertUserInDb from "../services/users/insert-user-in-db";
-import sendUserWithTokenResponse from "../services/users/send-user-with-token-response";
+import sendUpdatedUserWithTokenResponse from "../services/users/send-user-with-token-response";
 import signJwtToken from "../services/tokens/sign-jwt-token";
-import verifyUserAndSendResponse from "../services/users/verify-user-and-send-response";
+import verifyUserTokenAndSendResponse from "../services/users/verify-user-token-and-send-response";
 import insertPendingUserMod from "../services/users/insert-pending-user-mod";
 import commitPendingUserMod from "../services/users/commit-pending-user-mod";
 
@@ -118,7 +118,7 @@ export const processUserToken = async (req: Request, res: Response) => {
   }
 
   if (req.body.veriftoken) {
-    await verifyUserAndSendResponse(
+    await verifyUserTokenAndSendResponse(
       userId,
       res,
       req.body.email,
@@ -197,6 +197,7 @@ export const updateUser = async (req: Request, res: Response) => {
    * 5. this consuming service sends an email to the user with the token
    */
   const fieldsThatRequireUserConfirmation = ["email", "password"];
+  let updateRequiresUserConfirmation = false;
   for (let i = 0; i < fieldsThatRequireUserConfirmation.length; i++) {
     const field = fieldsThatRequireUserConfirmation[i];
     if (
@@ -207,6 +208,7 @@ export const updateUser = async (req: Request, res: Response) => {
         req.body[field] &&
         req.body[field] != existingUser.password)
     ) {
+      updateRequiresUserConfirmation = true;
       const userToken = await saveUserToken(
         existingUser.email,
         "User_Modification"
@@ -255,5 +257,9 @@ export const updateUser = async (req: Request, res: Response) => {
     return;
   }
 
-  await sendUserWithTokenResponse(existingUser.email, res);
+  await sendUpdatedUserWithTokenResponse(
+    existingUser.email,
+    res,
+    updateRequiresUserConfirmation
+  );
 };

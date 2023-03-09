@@ -20,19 +20,18 @@
     - [tokens](#tokens)
       - [POST /tokens](#post-tokens)
     - [users](#users)
-      - [POST /users](#post-users)
       - [GET /users/:id](#get-usersid)
+      - [POST /users](#post-users)
       - [PUT /users/:id](#put-usersid)
+      - [PUT /users/:id/process-token](#put-usersidprocess-token)
   - [Contribution guidelines](#contribution-guidelines)
   - [Contributors](#contributors)
 
 <!-- /TOC -->
 
-<!-- TODO update the docs -->
-
 ## what is this ?
 
-the server-side code that powers my PIPS (Portable Integrated Personal System) JSON API
+the server-side code that powers my PIPS (Portable Integrated Personal System) JSON API, this API is available @ <https://api.yactouat.com>
 
 ## stack
 
@@ -185,14 +184,12 @@ home route at `/` should return =>
 #### POST `/tokens`
 
 - generates a JWT token for the user or a 401 if the action is not authorized
-- input payload must look like =>
+- input payload must contains the user credentials =>
 
   ```json
   {
     "email": "myemail@domain.com",
-    "password": "my-password",
-    "socialHandle": "my-social-handle",
-    "socialHandleType": "GitHub" // or "LinkedIn"
+    "password": "my-password"
   }
   ```
 
@@ -208,41 +205,6 @@ home route at `/` should return =>
 ```
 
 ### users
-
-#### POST `/users`
-
-- creates a new user in the database, e.g. sign up
-- input payload must look like =>
-
-  ```json
-  {
-    "email": "myemail@domain.com",
-    "password": "my-password",
-    "socialHandle": "my-social-handle",
-    "socialHandleType": "GitHub" // or "LinkedIn"
-  }
-  ```
-
-- response is a success response =>
-
-  ```json
-  {
-    "msg": "thanks for registering to to api.yactouat.com; you will receive a verification link by email shortly",
-    "data": {
-      "token": "some.jwt.token",
-      "user": {
-        "id": "some-id",
-        "email": "myemail@domain.com",
-        "password": null,
-        "socialHandle": "my-social-handle",
-        "socialHandleType": "GitHub",
-        "verified": false
-      }
-    }
-  }
-  ```
-
-- behind the scenes, the API just sends a Pub/Sub message to a topic that should be listened to by the PIPS system, specifically a mailer service that will send a verification email to the user
 
 #### GET `/users/:id`
 
@@ -264,15 +226,17 @@ home route at `/` should return =>
   }
   ```
 
-#### PUT `/users/:id`
+#### POST `/users`
 
-- updates a new user as `verified` in the database, after he/she has signed up and clicked on the verification link in the email sent to him/her
+- creates a new user in the database, e.g. sign up
 - input payload must look like =>
 
   ```json
   {
     "email": "myemail@domain.com",
-    "verificationToken": "special-token"
+    "password": "my-password",
+    "socialhandle": "my-social-handle",
+    "socialhandletype": "GitHub" // or "LinkedIn"
   }
   ```
 
@@ -280,7 +244,43 @@ home route at `/` should return =>
 
   ```json
   {
-    "msg": "thanks for registering to to api.yactouat.com; you will receive a verification link by email shortly",
+    "msg": "user created",
+    "data": {
+      "token": "some.jwt.token",
+      "user": {
+        "id": "some-id",
+        "email": "myemail@domain.com",
+        "password": null,
+        "socialHandle": "my-social-handle",
+        "socialHandleType": "GitHub",
+        "verified": false
+      }
+    }
+  }
+  ```
+
+- after the response has been issued to the client, the API sends a Pub/Sub message to a users resource topic to be listened to by other components of the PIPS system
+
+#### PUT `/users/:id`
+
+- updates an existing user
+- requires a valid JWT token in the `Authorization` header of type `Bearer`
+- input payload must look like =>
+
+  ```json
+  {
+    "email": "myemail@domain.com",
+    "password": "some-password", // optional
+    "socialhandle": "my-social-handle",
+    "socialhandletype": "GitHub" // or "LinkedIn"
+  }
+  ```
+
+- response is a success response =>
+
+  ```json
+  {
+    "msg": "user updated, some profile data modifications may require an additional confirmation", // "user updated" if no fields require confirmation (such as socialhandle or socialhandletype)
     "data": {
       "token": "some.jwt.token",
       "user": {
@@ -295,7 +295,38 @@ home route at `/` should return =>
   }
   ```
 
-- the token used to verify the user is a one-time-use token, so it's status to `expired` in the database after the user has used it
+#### PUT `/users/:id/process-token`
+
+- validates a user token; user tokens are used to confirm sensitive profile data changes, this is done via a link sent to the user's email address
+- requires a valid JWT token in the `Authorization` header of type `Bearer`
+- input payload must look like =>
+
+  ```json
+  {
+    "email": "myemail@domain.com",
+    "modifytoken": "some-token", // optional
+    "verif-token": "some-token" // optional
+  }
+  ```
+
+- response is a success response =>
+
+  ```json
+  {
+    "msg": "user updated, some profile data modifications may require an additional confirmation",
+    "data": {
+      "token": "some.jwt.token",
+      "user": {
+        "id": "some-id",
+        "email": "myemail@domain.com",
+        "password": null,
+        "socialHandle": "my-social-handle",
+        "socialHandleType": "GitHub",
+        "verified": true
+      }
+    }
+  }
+  ```
 
 ## Contribution guidelines
 

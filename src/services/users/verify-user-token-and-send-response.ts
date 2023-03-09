@@ -3,9 +3,9 @@ import {
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { Response } from "express";
-import sendUserWithTokenResponse from "./send-user-with-token-response";
+import sendUpdatedUserWithTokenResponse from "./send-user-with-token-response";
 
-const verifyUserAndSendResponse = async (
+const verifyUserTokenAndSendResponse = async (
   userId: number,
   res: Response,
   email: string,
@@ -53,8 +53,8 @@ const verifyUserAndSendResponse = async (
     // meaning something went wrong with user verification
     sendJsonResponse(res, 401, "unauthorized");
   } else {
-    await sendUserWithTokenResponse(email, res);
+    await sendUpdatedUserWithTokenResponse(email, res, true);
   }
 };
 
-export default verifyUserAndSendResponse;
+export default verifyUserTokenAndSendResponse;

@@ -63,7 +63,7 @@ usersRouter.put(
 );
 
 usersRouter.put(
-  "/:id/verify",
+  "/:id/process-token",
   validatesUserIdParamMiddleware,
   body("email").isEmail(),
   body("modifytoken").isString().optional(),

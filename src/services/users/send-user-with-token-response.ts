@@ -5,7 +5,15 @@ import {
 import { Response } from "express";
 import signJwtToken from "../tokens/sign-jwt-token";
 
-const sendUserWithTokenResponse = async (email: string, res: Response) => {
+const sendUpdatedUserWithTokenResponse = async (
+  email: string,
+  res: Response,
+  updateRequiredTokenConfirmation: boolean = false
+) => {
+  let resMsg =
+    updateRequiredTokenConfirmation == false
+      ? "user updated, some profile data modifications may require an additional confirmation"
+      : "user updated";
   const updatedUser = await getUserFromDbWithEmail(email);
   if (updatedUser == null) {
     sendJsonResponse(res, 500, "something went wrong");
@@ -15,15 +23,10 @@ const sendUserWithTokenResponse = async (email: string, res: Response) => {
     id: updatedUser.id as number,
     email: updatedUser.email,
   });
-  sendJsonResponse(
-    res,
-    200,
-    "user updated, some profile data modifications may require an additional confirmation",
-    {
-      token: authToken,
-      user: updatedUser,
-    }
-  );
+  sendJsonResponse(res, 200, resMsg, {
+    token: authToken,
+    user: updatedUser,
+  });
 };
 
-export default sendUserWithTokenResponse;
+export default sendUpdatedUserWithTokenResponse;
