@@ -4,19 +4,14 @@
 
 - [pips_channel_personal-website_api](#pips_channel_personal-website_api)
   - [what is this ?](#what-is-this-)
-  - [pre requisites](#pre-requisites)
-  - [GCP project](#gcp-project)
-    - [the actual stuff](#the-actual-stuff)
-    - [service accounts and roles/permissions](#service-accounts-and-rolespermissions)
-      - [Cloud Run Deployer](#cloud-run-deployer)
-    - [the SDK](#the-sdk)
-  - [nice to have](#nice-to-have)
+  - [stack](#stack)
+  - [GCP service accounts and roles/permissions](#gcp-service-accounts-and-rolespermissions)
+    - [Cloud Run Deployer](#cloud-run-deployer)
   - [how to run and setup locally](#how-to-run-and-setup-locally)
   - [CI/CD](#cicd)
-  - [secrets and env vars](#secrets-and-env-vars)
+    - [secrets and env vars](#secrets-and-env-vars)
     - [deploying to the GCP manually](#deploying-to-the-gcp-manually)
-    - [deploying to the GCP automatically](#deploying-to-the-gcp-automatically)
-  - [connecting to the Supabase Postgres instance if you're using Supabase too](#connecting-to-the-supabase-postgres-instance-if-youre-using-supabase-too)
+  - [connecting to the Supabase Postgres instance](#connecting-to-the-supabase-postgres-instance)
   - [Google Cloud PubSub](#google-cloud-pubsub)
   - [API resources](#api-resources)
     - [blog posts](#blog-posts)
@@ -37,26 +32,24 @@
 
 ## what is this ?
 
-the server-side code that powers my PIPS (Portable Integrated Personal System) JSON API, feel free to use this as a template for your own API
+the server-side code that powers my PIPS (Portable Integrated Personal System) JSON API
 
-## pre requisites
+## stack
 
+- Docker
+- GitHub repo + GitHub Actions
+- Google Cloud Platform (GCP) project with billing enabled
+- `gcloud` CLI installed and configured to the PIPS GCP project (`gcloud auth application-default login` and `gcloud init` if it's not the case)
 - [Node.js](https://nodejs.org/en/)
+- PostgreSQL Supabase database
 - [Typescript](https://www.typescriptlang.org/)
-- a GitHub account (but hey, you already have one, don't you ?)
+- uses this npm **business** package: <https://github.com/yactouat/pips_resources_definitions>
 
-## GCP project
+## GCP service accounts and roles/permissions
 
-### the actual stuff
+Instead of using whatever default service account is affected automatically during the CI/CD process to build and deploy to Google Cloud Run and while interacting with GCP APIs, I like to create dedicated service accounts:
 
-- a Google Cloud Platform (GCP) project
-- you must have the `gcloud` CLI installed and configured to your GCP project (`gcloud auth application-default login` and `gcloud init` if it's not the case)
-
-### service accounts and roles/permissions
-
-Instead of using whatever default service account is affected automatically during the CI/CD process and while interacting with GCP APIs, I like to create dedicated service accounts:
-
-#### Cloud Run Deployer
+### Cloud Run Deployer
 
 It has roles:
 
@@ -66,24 +59,16 @@ It has roles:
 - `Cloud Run Developer`
 - `Service Account User`
 
-Also, at some point, a default service account for Cloud Build in your project (`**@cloudbuild.gserviceaccount.com`) will be triggered, and it will need to have the:
+Also, during the build step, a default service account for Cloud Build in the GCP project (`**@cloudbuild.gserviceaccount.com`) is triggered in the pipeline, and it needs to have the:
 
 - `Artifact Registry Administrator` role
 - `Storage Admin` role
 
-Finally, the compute service account that will be used (`**--compute@developer.gserviceaccount.com`) will need to have the:
+Finally, the compute service account that is used (`**--compute@developer.gserviceaccount.com`) in the GCP project needs to have the:
 
 - `Secret Manager Secret Accessor` role
 
 This is the result of a trial and error process, trying to set a service account from scratch to figure this out. Please don't hesitate to open an issue if you find a better way to do this.
-
-### the SDK
-
-If you're running this in full local mode, you'll need to install the GCP SDK; I plan to do this in a not too distant future, but if you do it before me, I'd be happy to accept a PR !
-
-## nice to have
-
-- you can provision a PostgreSQL database if you plan to deploy the solution; I'm personnaly using Supabase, if you do too you'll need to download the server root certificate and store it in the repo as `./creds/supabase-root.crt` (git ignored)
 
 ## how to run and setup locally
 
@@ -94,64 +79,45 @@ If you're running this in full local mode, you'll need to install the GCP SDK; I
 - `docker compose up -d` will start a local postgres instance and a `pgAdmin` instance
 - migrations are run by default with `npm run dev` (and also `start`)
 - to run the migrations afterwards, run `npm run migrate-db-dev`
+- this project is meant to have <https://github.com/yactouat/pips_channel_personal-website_webapp> as a front-end application
 
 ## CI/CD
 
-testing with jest, building with tsc, and deploying to the GCP, are all automated using Github Actions under the `.github/workflows` folder;
+testing with jest, building with tsc, and deploying to the GCP, are all automated using Github Actions under the `.github/workflows` folder; this happens whenever a push is made to the main branch
 
-the testing and building part happens whenever a pull request is created or updated
+### secrets and env vars
 
-the deploying to the GCP part happens whenever a new release is created on Github; you must have a project with the billing setup on the GCP
-
-## secrets and env vars
-
-- all the secrets and env vars you need are listed in the GitHub workflows
+- all the needed secrets and env vars are listed in the GitHub workflows
 - a secret ending with `FILE_NAME` is a path to a file that contains the actual secret
 - a secret ending with `_KEY` is a JSON key (such as service acounts keys in the GCP) and its contents
 - I use the `dotenv` package only on dev as I use GitHub repo secrets and the GCP Secret Manager to store/access the sensitive env vars on prod; you can
   - use the `.env.example` file as a template for your own `.env` file
   - checkout out the GitHub workflows to see how the secrets and env vars are used
+- I need several service accounts key JSON files, I created them in the GCP IAM and Admin section of the console
 
 ### deploying to the GCP manually
 
-- running `gcloud run deploy`, you may be prompted several times to confirm stuff, and you can also specify a few options:
-  - if you plan to point a domain name to your service, check out [domain mapping availability for Cloud Run](https://cloud.google.com/run/docs/mapping-custom-domains#run) to pick [the right region](https://cloud.google.com/compute/docs/regions-zones)
+- running `gcloud run deploy`, one may be prompted several times to confirm stuff, and you can also specify a few options:
   - the `--port=PORT` option is used to specify the port on which the server will listen (for instance `8080`)
   - the `--region=REGION` option is used to specify the region in which the service will be deployed (for instance, `europe-west1`)
+    - if you plan to point a domain name to your service, check out [domain mapping availability for Cloud Run](https://cloud.google.com/run/docs/mapping-custom-domains#run) to pick [the right region](https://cloud.google.com/compute/docs/regions-zones)
   - `gcloud run deploy --help` tells you more about the options when deploying a service to Cloud Run
 
-### deploying to the GCP automatically
+## connecting to the Supabase Postgres instance
 
-- you may need several service account key JSON files, you can create them in the GCP IAM and Admin section of the console
-- to deploy the app' on Cloud Run, you'll need to create 2 secrets in the Github repo settings:
-  - `CLOUD_RUN_DEPLOYER_SA_KEY` and the value being the content of the JSON file; if you're unsure what service account to use, check out the YAML definition of your Cloud Run service in the GCP console, it should be listed there
-  - `CLOUDRUN_SERVICE` and the value being the name of your Cloud Run service
-- blog posts contents are retrieved from GCP Cloud Storage; in order for the API to be able to access the files, you'll need to =>
-  - [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the stored blog posts contents
-  - the Secret Manager secret name should be named `BUCKET_VIEWER_SA_KEY` and the value should be another (or the same) Cloud Run service account JSON key file
-  - you of course need to have a GCP bucket created and populated with your blog posts contents
-  - you should also set =>
-    - a `BLOG_POSTS_BUCKET` GitHub repository secret for the name of the GCP Cloud Storage BLOG_POSTS_BUCKET where your blog posts contents are stored
-    - a `BUCKET_VIEWER_SA_KEY_FILE_NAME` GitHub repository secret for the path of the Secret Manager secret to be accessed within the Cloud Run service, for instance `/run/secrets/my_secret.json`
-    - ! the path of your secret should not be a relative one
-
-## connecting to the Supabase Postgres instance (if you're using Supabase too)
-
-- you'll need to download the root SSL certificate from the Supabase dashboard
-- also, a few env vars will need to be set, both locally and on your deployed service (check out <https://www.postgresql.org/docs/9.1/libpq-envars.html>)
+- I downloaded a root SSL certificate from the Supabase dashboard to enable TLS connections to the database
+- also, a few env vars need to be set, both locally and on the deployed service (check out <https://www.postgresql.org/docs/9.1/libpq-envars.html>)
 - a `pgAdmin` client is provided via the `docker-compose.yml` file, you can use it to connect to the database; it is available on port 8081 after a `docker-compose up` command
 - if you're having troubles to connect to the database, check out [the Supabase documentation](https://supabase.com/docs/guides/database/connecting-to-postgres)
-- as for the GCP BLOG_POSTS_BUCKET credentials, you'll also need to [configure a secret in the GCP](https://cloud.google.com/run/docs/configuring/secrets) so that your Cloud Run service can access the server root certificate of your Postgres instance
-- the Secret Manager secret name should be named `SUPABASE_POSTGRES_ROOT_CERT` and the value should be the contents of the root certificate you have downloaded from Supabase (dont forget to grant the service account that created your service access to the secret)
-- you should also set a few repository secrets with relevant values based on what you see in the `./env.example` file and the workflos files
-- ! the path of your secret, under the `SUPABASE_POSTGRES_ROOT_CERT` env var, should not be in the same directory than the blog posts bucket credentials secret
+- I set a few repository secrets with relevant values based on what you see in the `./env.example` file and the workflos files
+- ! the path of a secret, under the `SUPABASE_POSTGRES_ROOT_CERT` env var, should not be in the same directory than the blog posts bucket credentials secret
 - on each new release, migrations are run on the live database before the server starts
 
 ## Google Cloud PubSub
 
 I'm using PubSub to broadcast events across the PIPS system.
 
-You will need to create a topic to send a notification to when a new user is created. The topic fully qualified name should be set in the `PUBSUB_USERS_TOPIC` env var.
+I created a topic to send a notification to when a new user is created. The topic fully qualified name is set in the `PUBSUB_USERS_TOPIC` env var.
 
 ## API resources
 
