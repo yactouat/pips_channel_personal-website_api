@@ -305,9 +305,11 @@ home route at `/` should return =>
   {
     "email": "myemail@domain.com",
     "modifytoken": "some-token", // optional
-    "verif-token": "some-token" // optional
+    "veriftoken": "some-token" // optional
   }
   ```
+
+- you need at least one of the two tokens, `modifytoken` or `veriftoken`, to be present in the payload
 
 - response is a success response =>
 
