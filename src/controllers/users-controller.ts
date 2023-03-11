@@ -152,11 +152,14 @@ export const updateUser = async (req: Request, res: Response) => {
     return;
   }
 
+  console.log("UPDATE USER PROFILE PAYLOAD: ", req.body);
+
   // update the user only when needed
   if (
     existingUser.email === req.body.email &&
     existingUser.socialHandle === req.body.socialhandle &&
-    existingUser.socialHandleType === req.body.socialhandletype
+    existingUser.socialHandleType === req.body.socialhandletype &&
+    !req.body.password
   ) {
     sendJsonResponse(res, 422, "no profile data to update");
     return;
