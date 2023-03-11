@@ -5,10 +5,23 @@ import {
 } from "pips_resources_definitions/dist/behaviors";
 
 import sendUpdatedUserWithTokenResponse from "./send-user-with-token-response";
-import { PendingUserModificationResource } from "pips_resources_definitions/dist/resources";
 import hashUserPassword from "./hash-user-password";
 import getPendingUserModWithToken from "./get-pending-user-mod-with-token";
 
+/**
+ *
+ * this function is responsible for the committing a pending user modification in the database funnel
+ *
+ * this consists of:
+ * 1. commit the pending user modification at a given date using an app' token as a parameter
+ * 2. expire the app' token associated with the pending user modification
+ * 3. update the user's email or password
+ * 4. send the updated user response with a new JWT token
+ *
+ * @param {string} token
+ * @param {string} email
+ * @param res
+ */
 const commitPendingUserMod = async (
   token: string,
   email: string,
@@ -43,6 +56,7 @@ const commitPendingUserMod = async (
   }
   try {
     const userMod = await getPendingUserModWithToken(token);
+    console.log("userMod: ", userMod);
     if (userMod.field === "email") {
       await runPgQuery(
         `UPDATE users 
@@ -60,7 +74,6 @@ const commitPendingUserMod = async (
       email = userMod.value;
     }
     if (userMod.field === "password") {
-      const hashedPassword = await hashUserPassword(userMod.value);
       await runPgQuery(
         `UPDATE users 
          SET password = $1
@@ -72,7 +85,7 @@ const commitPendingUserMod = async (
           WHERE pum.id = $2
         )
         RETURNING *`,
-        [hashedPassword, userMod.id.toString()]
+        [userMod.value, userMod.id.toString()]
       );
     }
   } catch (error) {

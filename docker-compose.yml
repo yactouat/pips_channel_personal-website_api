@@ -4,7 +4,7 @@ volumes:
 
 services:
   pgadmin:
-    image: dpage/pgadmin4:6.20
+    image: dpage/pgadmin4:6.21
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_PASSWORD: pwd
