@@ -221,7 +221,8 @@ home route at `/` should return =>
       "password": null,
       "socialHandle": "my-social-handle",
       "socialHandleType": "GitHub",
-      "verified": false
+      "verified": false,
+      "hasPendingModifications": true // optional
     }
   }
   ```
@@ -238,6 +239,25 @@ home route at `/` should return =>
     "socialhandle": "my-social-handle",
     "socialhandletype": "GitHub" // or "LinkedIn"
   }
+  ```
+
+- these are the password strength requirements =>
+
+  ```js
+  /**
+   *    minLength: 8,
+   *    minLowercase: 1,
+   *    minUppercase: 1,
+   *    minNumbers: 1,
+   *    minSymbols: 1,
+   *    returnScore: false,
+   *    pointsPerUnique: 1,
+   *    pointsPerRepeat: 0.5,
+   *    pointsForContainingLower: 10,
+   *    pointsForContainingUpper: 10,
+   *    pointsForContainingNumber: 10,
+   *    pointsForContainingSymbol: 10
+   * */
   ```
 
 - response is a success response =>
@@ -289,7 +309,8 @@ home route at `/` should return =>
         "password": null,
         "socialHandle": "my-social-handle",
         "socialHandleType": "GitHub",
-        "verified": true
+        "verified": true,
+        "hasPendingModifications": true // optional
       }
     }
   }
@@ -324,7 +345,8 @@ home route at `/` should return =>
         "password": null,
         "socialHandle": "my-social-handle",
         "socialHandleType": "GitHub",
-        "verified": true
+        "verified": true,
+        "hasPendingModifications": true // optional
       }
     }
   }

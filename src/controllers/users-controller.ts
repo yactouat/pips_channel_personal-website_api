@@ -17,11 +17,12 @@ import {
 import getPubSubClient from "../get-pubsub-client";
 import getUserIdFromParams from "../services/users/get-user-id-from-params";
 import insertUserInDb from "../services/users/insert-user-in-db";
-import sendUpdatedUserWithTokenResponse from "../services/users/send-user-with-token-response";
+import sendUserWithTokenResponse from "../services/users/send-user-with-token-response";
 import signJwtToken from "../services/tokens/sign-jwt-token";
 import verifyUserTokenAndSendResponse from "../services/users/verify-user-token-and-send-response";
 import insertPendingUserMod from "../services/users/insert-pending-user-mod";
 import commitPendingUserMod from "../services/users/commit-pending-user-mod";
+import setUserHasPendingMods from "../services/users/set-user-has-pending-mods";
 
 export const createUser = async (req: Request, res: Response) => {
   const userAlreadyExists = await getUserFromDbWithEmail(req.body.email);
@@ -86,11 +87,13 @@ export const getUser = async (req: Request, res: Response) => {
     sendJsonResponse(res, 403, ForbiddenResText);
     return;
   }
-  const user = await getUserFromDbWithId(userId);
+  let user = await getUserFromDbWithId(userId);
   if (user == null) {
     sendJsonResponse(res, 404, UserNotFoundText);
     return;
   }
+  user = await setUserHasPendingMods(user, userId);
+  console.log(`REQUESTED USER WITH ID ${userId}: `, user);
   sendJsonResponse(res, 200, "user fetched", user);
 };
 
@@ -259,7 +262,7 @@ export const updateUser = async (req: Request, res: Response) => {
     return;
   }
 
-  await sendUpdatedUserWithTokenResponse(
+  await sendUserWithTokenResponse(
     existingUser.email,
     res,
     updateRequiresUserConfirmation

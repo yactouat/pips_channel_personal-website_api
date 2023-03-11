@@ -4,8 +4,7 @@ import {
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 
-import sendUpdatedUserWithTokenResponse from "./send-user-with-token-response";
-import hashUserPassword from "./hash-user-password";
+import sendUserWithTokenResponse from "./send-user-with-token-response";
 import getPendingUserModWithToken from "./get-pending-user-mod-with-token";
 
 /**
@@ -96,7 +95,7 @@ const commitPendingUserMod = async (
     // meaning something went wrong with user verification
     sendJsonResponse(res, 401, "unauthorized");
   } else {
-    await sendUpdatedUserWithTokenResponse(email, res, true);
+    await sendUserWithTokenResponse(email, res, true);
   }
 };
 
