@@ -8,7 +8,7 @@ import {
 } from "pips_resources_definitions/dist/behaviors";
 import { Request, Response } from "express";
 
-import compareIdWithToken from "../services/tokens/compare-id-with-token";
+import compareIdWithToken from "../jwt/compare-id-with-token";
 import {
   ForbiddenResText,
   UserNotFoundText,
@@ -18,11 +18,12 @@ import getPubSubClient from "../get-pubsub-client";
 import getUserIdFromParams from "../services/users/get-user-id-from-params";
 import insertUserInDb from "../services/users/insert-user-in-db";
 import sendUserWithTokenResponse from "../services/users/send-user-with-token-response";
-import signJwtToken from "../services/tokens/sign-jwt-token";
-import verifyUserTokenAndSendResponse from "../services/users/verify-user-token-and-send-response";
+import signJwtToken from "../jwt/sign-jwt-token";
+import verifyUserAndSendResponse from "../services/users/verify-user-and-send-response";
 import insertPendingUserMod from "../services/users/insert-pending-user-mod";
 import commitPendingUserMod from "../services/users/commit-pending-user-mod";
 import setUserHasPendingMods from "../services/users/set-user-has-pending-mods";
+import deleteUserAndSendResponse from "../services/users/delete-user-and-send-response";
 
 export const createUser = async (req: Request, res: Response) => {
   const userAlreadyExists = await getUserFromDbWithEmail(req.body.email);
@@ -80,6 +81,50 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteUser = async (req: Request, res: Response) => {
+  let userProfileDeletionRequestWentThrough = false;
+  const userId = getUserIdFromParams(req) as number;
+  // validating id from JWT
+  if (!compareIdWithToken(req, userId)) {
+    sendJsonResponse(res, 403, ForbiddenResText);
+    return;
+  }
+  // validating the user exists in the db
+  const existingUser = await getUserFromDbWithId(userId);
+  if (existingUser == null) {
+    sendJsonResponse(res, 404, UserNotFoundText);
+    return;
+  }
+  try {
+    if (process.env.NODE_ENV != "development") {
+      const dataBuffer = Buffer.from(existingUser.email);
+      await getPubSubClient()
+        .topic(process.env.PUBSUB_USERS_TOPIC as string)
+        .publishMessage({
+          data: dataBuffer,
+          attributes: {
+            env: process.env.NODE_ENV as string,
+            userTokenType: "User_Deletion",
+          },
+        });
+    } else {
+      // dev mode
+      const userToken = await saveUserToken(
+        existingUser.email,
+        "User_Deletion"
+      );
+      userProfileDeletionRequestWentThrough = userToken != "";
+    }
+  } catch (error) {
+    console.error(error);
+  }
+  if (!userProfileDeletionRequestWentThrough) {
+    sendJsonResponse(res, 500, UserUpdateFailedText);
+  } else {
+    sendJsonResponse(res, 200, "user deletion request sent");
+  }
+};
+
 export const getUser = async (req: Request, res: Response) => {
   const userId = getUserIdFromParams(req) as number;
   // validating id from JWT
@@ -99,7 +144,7 @@ export const getUser = async (req: Request, res: Response) => {
 
 export const processUserToken = async (req: Request, res: Response) => {
   // checking that at least one supported token type is present in the request
-  if (!req.body.veriftoken && !req.body.modifytoken) {
+  if (!req.body.veriftoken && !req.body.modifytoken && !req.body.deletetoken) {
     sendJsonResponse(res, 400, "no supported user token provided");
     return;
   }
@@ -121,7 +166,7 @@ export const processUserToken = async (req: Request, res: Response) => {
   }
 
   if (req.body.veriftoken) {
-    await verifyUserTokenAndSendResponse(
+    await verifyUserAndSendResponse(
       userId,
       res,
       req.body.email,
@@ -129,6 +174,13 @@ export const processUserToken = async (req: Request, res: Response) => {
     );
   } else if (req.body.modifytoken) {
     await commitPendingUserMod(req.body.modifytoken, req.body.email, res);
+  } else if (req.body.deletetoken) {
+    await deleteUserAndSendResponse(
+      userId,
+      res,
+      req.body.email,
+      req.body.deletetoken
+    );
   }
 };
 

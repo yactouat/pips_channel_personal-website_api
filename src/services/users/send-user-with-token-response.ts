@@ -3,7 +3,7 @@ import {
   sendJsonResponse,
 } from "pips_resources_definitions/dist/behaviors";
 import { Response } from "express";
-import signJwtToken from "../tokens/sign-jwt-token";
+import signJwtToken from "../../jwt/sign-jwt-token";
 import setUserHasPendingMods from "./set-user-has-pending-mods";
 
 const sendUserWithTokenResponse = async (

@@ -66,6 +66,7 @@ const commitPendingUserMod = async (
           INNER JOIN tokens t ON t.id = pum.token_id
           INNER JOIN tokens_users tu ON tu.token_id = t.id
           WHERE pum.id = $2
+          AND tu.type = 'user_modification'
         )
         RETURNING *`,
         [userMod.value, userMod.id.toString()]
@@ -82,6 +83,7 @@ const commitPendingUserMod = async (
           INNER JOIN tokens t ON t.id = pum.token_id
           INNER JOIN tokens_users tu ON tu.token_id = t.id
           WHERE pum.id = $2
+          AND tu.type = 'user_modification'
         )
         RETURNING *`,
         [userMod.value, userMod.id.toString()]

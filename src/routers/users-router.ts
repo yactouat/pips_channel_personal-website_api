@@ -9,6 +9,13 @@ import checksValidationResultMiddleware from "../middlewares/checks-validation-r
 
 const usersRouter = express.Router();
 
+usersRouter.delete(
+  "/:id",
+  validatesUserIdParamMiddleware,
+  validatesJwtTokenMiddleware,
+  usersController.deleteUser
+);
+
 usersRouter.get(
   "/:id",
   validatesUserIdParamMiddleware,

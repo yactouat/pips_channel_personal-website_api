@@ -5,7 +5,7 @@ import {
 import { Response } from "express";
 import sendUserWithTokenResponse from "./send-user-with-token-response";
 
-const verifyUserTokenAndSendResponse = async (
+const verifyUserAndSendResponse = async (
   userId: number,
   res: Response,
   email: string,
@@ -26,6 +26,7 @@ const verifyUserTokenAndSendResponse = async (
               AND u.id = $2
               AND t.token = $3
               AND t.expired = 0
+              AND tu.type = 'user_verification'
             ) 
             RETURNING *`,
       [email ?? "", userId.toString(), veriftoken]
@@ -57,4 +58,4 @@ const verifyUserTokenAndSendResponse = async (
   }
 };
 
-export default verifyUserTokenAndSendResponse;
+export default verifyUserAndSendResponse;
