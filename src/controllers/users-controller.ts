@@ -107,6 +107,7 @@ export const deleteUser = async (req: Request, res: Response) => {
             userTokenType: "User_Deletion",
           },
         });
+      userProfileDeletionRequestWentThrough = true;
     } else {
       // dev mode
       const userToken = await saveUserToken(
