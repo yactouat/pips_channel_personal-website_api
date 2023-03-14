@@ -39,6 +39,9 @@ export const getJWTAuthToken = async (req: Request, res: Response) => {
   if (authed == false) {
     sendJsonResponse(res, 401, "invalid credentials");
   } else {
-    sendJsonResponse(res, 200, "auth token issued", { token });
+    sendJsonResponse(res, 200, "auth token issued", {
+      token: token,
+      userId: user.id,
+    });
   }
 };
