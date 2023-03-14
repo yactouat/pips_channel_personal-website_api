@@ -7,10 +7,15 @@ const setUserHasPendingMods = async (
 ): Promise<UserResource> => {
   const hasPendingModifications = await runPgQuery(
     `
-    SELECT COUNT(*) as haspendingmodifications FROM pending_user_modifications pum
-    JOIN tokens_users tu ON pum.token_id = tu.token_id
+    SELECT COUNT(*) as haspendingmodifications 
+    FROM tokens_users tu
+    LEFT JOIN pending_user_modifications pum ON tu.token_id = pum.token_id
     WHERE tu.user_id = $1
-    AND pum.committed_at IS NULL
+    AND (
+      pum.committed_at IS NULL
+      OR tu.type = 'user_deletion'
+    )
+    AND tu.type != 'user_verification'
   `,
     [userId.toString()]
   );
